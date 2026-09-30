@@ -1,0 +1,42 @@
+# Example data-layout configuration for RPGR.
+#
+# Copy this file to paths.yaml (or any other name) and point every path at
+# your own data. Nothing under src/rpgr/ contains a hardcoded path -- every
+# script under scripts/ reads its input/output locations exclusively from a
+# file like this one.
+#
+# Expected on-disk format (see docs/DATA_FORMAT.md for full details):
+#   image_embeddings_dir/<case_id>.npy  -- (N_i, d) float array, one row per
+#       patch, for one whole-slide image. Not provided by this repository:
+#       patch-level visual embeddings must already exist (see paper Section
+#       4.2 for how they were produced for KEEP/CONCH/MUSK/PATHO-CLIP).
+#   text_embeddings_dir/<case_id>.npy   -- (d,) float array, one pathology
+#       report embedding per case, from the same frozen text encoder.
+#   pool_cache_path                     -- .npz written by build_pool_cache.py
+#       (case_ids, mean_pool, max_pool), read by every downstream script
+#       instead of re-reading raw patches every time.
+#   prototypes_dir/<case_id>_prototype.npz -- written by build_prototypes.py.
+
+backbones:
+  KEEP:
+    dim: 768
+    image_embeddings_dir: /path/to/keep_image_embeddings
+    pool_cache_path: ./cache/KEEP_pool.npz
+    prototypes_dir: ./cache/prototypes/KEEP
+    text_embeddings:
+      original: /path/to/keep_text_embeddings
+      strict: /path/to/keep_text_embeddings_strict
+      diagnosis_only: /path/to/keep_text_embeddings_diagnosis_only
+
+  # CONCH, MUSK, PATHO_CLIP follow the same shape as KEEP -- add them here
+  # (with their own dim: 512 / 1024 / 768) once needed by a script that
+  # sweeps all four backbones (Tables 1-2).
+
+cohort:
+  # slide_id list with a "split" column (train/val/test), case-level, no
+  # cross-partition leakage. See Section 4.1 and docs/REPRODUCING.md.
+  split_csv: /path/to/tcga_split_subtype_estricto.csv
+  # slide_id -> OncotreeCode (subtype) and project_id (organ) labels.
+  labels_csv: /path/to/tcga_labels.csv
+
+output_dir: ./outputs

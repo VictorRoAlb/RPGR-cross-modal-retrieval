@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Environments
+.venv/
+venv/
+.env
+
+# This project's own runtime artefacts -- never commit data, caches or outputs
+outputs/
+*.npz
+*.npy
+configs/paths.yaml
+configs/*.local.yaml
+
+# Editor / OS noise
+.vscode/
+.idea/
+.DS_Store

@@ -1,0 +1,35 @@
+# This CITATION.cff is a placeholder: the paper is not published yet.
+# Fill in doi/journal/volume/pages/year once it is accepted.
+cff-version: 1.2.0
+message: "If you use this software, please cite the paper below."
+title: "Stress-Testing Vision-Language Pathology Foundation Models for WSI-Report Cross-Modal Retrieval with Reciprocal Prototype-Guided Re-ranking"
+type: software
+authors:
+  - family-names: "Rodríguez-Albendea"
+    given-names: "Víctor"
+    affiliation: "CVBLab, Human-Tech Institute, Universitat Politècnica de València"
+  - family-names: "Meseguer"
+    given-names: "Pablo"
+    affiliation: "CVBLab, Human-Tech Institute, Universitat Politècnica de València"
+  - family-names: "Giménez"
+    given-names: "Cristóbal"
+    affiliation: "CVBLab, Human-Tech Institute, Universitat Politècnica de València"
+  - family-names: "Colomer Granero"
+    given-names: "Adrián"
+    affiliation: "CVBLab, Human-Tech Institute, Universitat Politècnica de València"
+license: MIT
+repository-code: "https://github.com/VictorRoAlb/REPLACE-WITH-REPO-NAME"
+preferred-citation:
+  type: article
+  title: "Stress-Testing Vision-Language Pathology Foundation Models for WSI-Report Cross-Modal Retrieval with Reciprocal Prototype-Guided Re-ranking"
+  authors:
+    - family-names: "Rodríguez-Albendea"
+      given-names: "Víctor"
+    - family-names: "Meseguer"
+      given-names: "Pablo"
+    - family-names: "Giménez"
+      given-names: "Cristóbal"
+    - family-names: "Colomer Granero"
+      given-names: "Adrián"
+  year: 2026
+  journal: "TBD -- update on acceptance"
