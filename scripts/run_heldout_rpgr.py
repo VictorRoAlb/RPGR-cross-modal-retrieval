@@ -2,10 +2,13 @@
 """
 run_heldout_rpgr.py
 =====================
-Reproduces the RPGR row of Table 3 (held-out WSI-report retrieval
-benchmark, TEST cohort): class-macro Recall@1/3/5/10, MRR@10 and mAP@10,
-both I2T and T2I, KEEP backbone, Strict text, subtype (OncotreeCode)
-granularity, exact-pair INCLUDED.
+Reproduces the RPGR row of Table 2 (held-out WSI-report retrieval
+benchmark, TCGA TEST cohort): class-macro Recall@1/3/5/10, MRR@10 and
+mAP@10, both I2T and T2I, KEEP backbone, Strict text, subtype
+(OncotreeCode) granularity, exact-pair INCLUDED.
+
+Scope note: the paper also reports an analogous AI4SKIN benchmark (Table
+3, five-fold protocol); this script does not cover it.
 
 Reads only from the paths given in --config (pool cache, text embeddings,
 prototypes, split, labels). Writes only under output_dir. Uses exclusively

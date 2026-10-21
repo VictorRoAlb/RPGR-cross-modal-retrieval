@@ -51,7 +51,7 @@ def bgap(patch_embeddings: np.ndarray) -> np.ndarray:
 def max_pool(patch_embeddings: np.ndarray) -> np.ndarray:
     """Max-pooling baseline: element-wise max over L2-normalized patches,
     L2-normalized again. Parameter-free global-aggregation comparator used
-    in Table 3 (Max pooling row) -- not part of RPGR itself, kept here
+    in Tables 2-3 (Max pooling row) -- not part of RPGR itself, kept here
     because it shares the same normalization utilities and source script.
     """
     patch_embeddings = np.asarray(patch_embeddings, dtype=np.float32)

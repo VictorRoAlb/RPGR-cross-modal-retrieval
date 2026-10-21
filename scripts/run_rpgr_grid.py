@@ -2,13 +2,19 @@
 """
 run_rpgr_grid.py
 ==================
-Reproduces Table 2 (effect of RPGR across the complete 48-condition
-evaluation grid): for every combination of backbone (4), textual scenario
-(3), semantic granularity (2), and retrieval direction (2), computes both
-the BGAP baseline mAP@10 and the RPGR mAP@10 on the full retrieval cohort
-(all cases present in each backbone's pool cache -- N=5291 in the paper,
-"C_paper"). Also reproduces Table 1 alone if you only need BGAP: see
-run_stress_test.py, which shares the same loop but skips the RPGR side.
+Reproduces the TCGA half of Figure 2 (effect of RPGR across the complete
+48-condition evaluation grid): for every combination of backbone (4),
+textual scenario (3), semantic granularity (2), and retrieval direction
+(2), computes both the BGAP baseline mAP@10 and the RPGR mAP@10 on the
+full retrieval cohort (all cases present in each backbone's pool cache --
+N=5291 in the paper, "C_paper"). Also reproduces Table 1 alone if you only
+need BGAP: see run_stress_test.py, which shares the same loop but skips
+the RPGR side.
+
+Scope note: Figure 2 also shows 24 analogous AI4SKIN conditions (4
+backbones x 3 scenarios x 2 directions, subtype granularity only); this
+script does not compute them -- it covers TCGA only, 48 of the figure's 72
+panels.
 
 Reads only from the paths given in --config. Writes only under output_dir.
 Uses exclusively rpgr.reranking and rpgr.metrics.
@@ -114,9 +120,10 @@ def main() -> None:
     df = pd.DataFrame(rows)
     out_dir = Path(cfg["output_dir"])
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / "rpgr_grid_table2.csv"
+    out_path = out_dir / "rpgr_grid_figure2_tcga.csv"
     df.to_csv(out_path, index=False)
-    print(f"\n{len(df)} filas (esperado 48 con los 4 backbones) -> {out_path}")
+    print(f"\n{len(df)} filas (esperado 48 con los 4 backbones; TCGA only, "
+          f"ver nota de alcance en el docstring) -> {out_path}")
 
 
 if __name__ == "__main__":

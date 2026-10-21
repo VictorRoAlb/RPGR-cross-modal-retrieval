@@ -30,7 +30,7 @@ backbones:
 
   # CONCH, MUSK, PATHO_CLIP follow the same shape as KEEP -- add them here
   # (with their own dim: 512 / 1024 / 768) once needed by a script that
-  # sweeps all four backbones (Tables 1-2).
+  # sweeps all four backbones (Table 1 and Figure 2).
 
 cohort:
   # slide_id list with a "split" column (train/val/test), case-level, no

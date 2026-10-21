@@ -2,7 +2,7 @@
 """
 qualitative_reranking.py
 ===========================
-Reproduces Figure 2: a real T2I re-ranking example (query TCGA-77-7141,
+Reproduces Figure 3: a real T2I re-ranking example (query TCGA-77-7141,
 LUSC), comparing the initial BGAP Top-5 against the RPGR-reordered Top-5.
 Green boxes mark candidates matching the query's ground-truth subtype, red
 boxes mark other subtypes; the small caption under each thumbnail shows
@@ -10,8 +10,9 @@ where that candidate ranked under the other method.
 
 This case is hardcoded, not chosen dynamically -- it is the exact example
 independently re-verified from raw embeddings against the paper's
-Section 4.9 and Figure 2 (see METHOD_PROVENANCE.md). Re-running this script
-reproduces the same figure; it does not search for a new example.
+qualitative retrieval analysis section and Figure 3 (see
+METHOD_PROVENANCE.md). Re-running this script reproduces the same figure;
+it does not search for a new example.
 
 Fetches the 9 real tissue thumbnails from GDC on first run (cached to
 --cache-dir afterwards) using utils/remote_svs_thumb.py -- no full .svs

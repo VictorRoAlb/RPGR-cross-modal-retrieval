@@ -11,8 +11,9 @@ class counts equally, regardless of size). No file I/O, no dataset-specific
 paths, and no statistical inference of any kind -- no bootstrap, confidence
 intervals, permutation tests, Holm-Bonferroni correction, or p-values.
 
-Exact-pair policy: the paper's final benchmark (Table 3) and the RPGR-wide
-evaluation (Tables 1-2) both use exact-pair INCLUDED -- a WSI's own paired
+Exact-pair policy: the paper's final benchmark (Tables 2-3) and the
+RPGR-wide evaluation (Table 1 and Figure 2) both use exact-pair INCLUDED
+-- a WSI's own paired
 report (and vice versa) is a valid retrieval candidate, never masked out,
 and every query is always eligible. This is the default here
 (`exclude_exact_pair=False`). Exact-pair EXCLUDED (diagonal masked; a query

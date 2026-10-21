@@ -11,8 +11,9 @@ python3 build_pool_cache.py  --config ../configs/paths.yaml --backbone KEEP
 python3 build_prototypes.py  --config ../configs/paths.yaml --backbone KEEP
 ```
 
-Repeat for CONCH, MUSK, PATHO_CLIP if you intend to reproduce Tables 1, 2 or
-4 (which cover all four backbones); Table 3 only needs KEEP.
+Repeat for CONCH, MUSK, PATHO_CLIP if you intend to reproduce Table 1,
+Figure 2, or Table 4 (which cover all four backbones); Table 2 only needs
+KEEP.
 `build_prototypes.py` is the slow step (adaptive k-means per case); it is
 resumable and safe to re-run, and accepts `--n-jobs` for parallelism.
 
@@ -31,20 +32,24 @@ python3 run_stress_test.py --config ../configs/paths.yaml
 Writes `outputs/stress_test_table1.csv`: one row per (backbone, textual
 scenario, granularity, direction), `mAP@10`.
 
-## Table 2 — effect of RPGR across the full 48-condition grid
+## Figure 2 (TCGA half) — effect of RPGR across the full 48-condition grid
 
 ```bash
 python3 run_rpgr_grid.py --config ../configs/paths.yaml
 ```
 
-Writes `outputs/rpgr_grid_table2.csv`: same 48 rows as Table 1, plus
-`rpgr_mAP@10` and the relative `delta_pct`.
+Writes `outputs/rpgr_grid_figure2_tcga.csv`: same 48 rows as Table 1, plus
+`rpgr_mAP@10` and the relative `delta_pct`. Figure 2 also shows 24
+analogous AI4SKIN conditions; this script does not compute them (TCGA
+only, 48 of the figure's 72 panels).
 
-## Table 3 — held-out benchmark, RPGR row only
+## Table 2 — held-out TCGA benchmark, RPGR row only
 
 This repository reproduces RPGR's own row; the other seven methods in
-Table 3 (BGAP, Max pooling, RR, TransMIL, SETMIL, DTN, FGCR) are outside
-its scope -- see the paper's Data and code availability statement.
+Table 2 (BGAP, Max pooling, RR, TransMIL, SETMIL, DTN, FGCR) are outside
+its scope -- see the paper's Data and code availability statement. Table 3
+(the analogous AI4SKIN benchmark, five-fold protocol) is outside this
+release's scope entirely, for either RPGR or the other methods.
 
 ```bash
 python3 run_heldout_rpgr.py --config ../configs/paths.yaml \
@@ -68,7 +73,7 @@ see `METHOD_PROVENANCE.md`.
 
 ## Figures
 
-- **Figure 2** (qualitative re-ranking example) is an illustrative,
+- **Figure 3** (qualitative re-ranking example) is an illustrative,
   case-specific figure built from a single hand-picked example; it is not
   part of this release's reproducible pipeline in the same sense as the
   tables above.

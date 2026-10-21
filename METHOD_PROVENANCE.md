@@ -83,7 +83,7 @@ and `S_B` are bit-for-bit identical to the original inline computation
 (max abs diff = 0.0), the Top-50 pool is identical for all 120 queries, and
 the final I2T/T2I rankings match exactly at Top-1/3/5/10 for all queries.
 Additionally, running this module alone (with `metrics.py`) against the
-full TEST cohort (n=1578) reproduces all 12 metrics of Table 3's RPGR row
+full TEST cohort (n=1578) reproduces all 12 metrics of Table 2's RPGR row
 (I2T and T2I) exactly.
 
 **Known, harmless wording gap:** the paper states that candidates outside
@@ -122,7 +122,7 @@ rounding -- confirmed by direct computation, not assumed). Full
 `evaluate_direction` (both INCLUDED and EXCLUDED) matched the original
 macro output to better than 1e-12 on the real TEST cohort. Running the
 complete pipeline (`reranking.py` + `metrics.py`, no other file) against
-KEEP+Strict+TEST reproduces all 12 values of Table 3's RPGR row exactly at
+KEEP+Strict+TEST reproduces all 12 values of Table 2's RPGR row exactly at
 the reported 4-decimal precision.
 
 ## scripts/build_pool_cache.py, scripts/build_prototypes.py
@@ -144,8 +144,8 @@ scripts), using the real, already-existing caches on this project's disk:
 
 | script | reproduces | result |
 |---|---|---|
-| `run_heldout_rpgr.py` | Table 3, RPGR row, TEST n=1578 | 12/12 exact |
-| `run_rpgr_grid.py` | Tables 1 and 2, all 48 conditions, 4 backbones | 96/96 exact |
+| `run_heldout_rpgr.py` | Table 2, RPGR row, TEST n=1578 | 12/12 exact |
+| `run_rpgr_grid.py` | Table 1 and Figure 2 (TCGA half), all 48 conditions, 4 backbones | 96/96 exact |
 | `run_stress_test.py` | Table 1 independently | 48/48 exact |
 | `run_prototype_ablation.py` | Table 4, 4 backbones | 16/16 exact |
 
