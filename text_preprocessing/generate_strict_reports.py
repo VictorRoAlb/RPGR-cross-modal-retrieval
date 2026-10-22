@@ -1,57 +1,59 @@
 #!/usr/bin/env python3
 """
-filter_reports_no_diagnosis.py
-================================
-Anade a tcga_reports_cleaned.csv una columna nueva, slide_reports_no_diagnosis_strict,
-con una reescritura de slide_reports (el campo usado para el encoder de texto en el
-retrieval I2T/T2I) que describe UNICAMENTE morfologia histologica -- sin diagnostico,
-sin grado/estadio, sin inmunohistoquimica/biomarcadores, sin el organo usado como
-introduccion ("The slide from the X shows..."), y sin ningun otro "keyword" que
-delate la clase. Usa el mismo proceso ya validado para ASSIST/SICAP: openai (gpt-4.1)
-con Structured Outputs (json_schema, strict) para que el modelo no se invente nada
-fuera del formato esperado, mas una validacion automatica por regex contra fuga de
-diagnostico y reintento con prompt mas estricto si se detecta.
+generate_strict_reports.py
+=============================
+Adds a new column, slide_reports_no_diagnosis_strict, to the master reports
+CSV: a rewrite of slide_reports (the field used as the text-encoder input
+for I2T/T2I retrieval) that describes ONLY histological morphology -- no
+diagnosis, no grade/stage, no immunohistochemistry/biomarkers, no organ
+used as an introductory frame ("The slide from the X shows..."), and no
+other keyword that reveals the class. Uses GPT-4.1 with Structured Outputs
+(strict JSON schema) so the model cannot deviate from the expected format,
+plus an automatic regex check against label leakage with a stricter retry
+prompt when leakage is detected.
 
-Por que hace falta: slide_reports regala el diagnostico literal y el organo, que
-son las mismas etiquetas usadas para clasificacion (OncotreeCode/cancer_type_detailed),
-inflando artificialmente las metricas I2T/T2I por fuga de keywords en vez de por
-alineacion real imagen-texto (ver results/eval/excel/tcga_results_summary.xlsx).
+Why this is needed: slide_reports gives away the literal diagnosis and
+organ, which are the same labels used for classification (OncotreeCode /
+cancer_type_detailed). Left in, they inflate I2T/T2I retrieval metrics
+through keyword leakage rather than genuine image-text alignment.
 
-Nota sobre la fuente: se usa solo slide_reports, no case_reports. slide_reports es
-corto (max ~700 caracteres) y muchas veces mayoritariamente diagnostico -- para esas
-filas el resultado sera legitimamente corto una vez quitado el diagnostico. Eso es
-una caracteristica real de los datos de origen, no un fallo del script: nunca se debe
-inventar morfologia que no este en el texto original.
+Source note: this uses slide_reports only, not case_reports. slide_reports
+is short (at most ~700 characters) and often mostly diagnosis -- for those
+rows the result will legitimately be short once the diagnosis is removed.
+That is a real property of the source data, not a script bug: morphology
+that is not present in the original text must never be invented.
 
-Validacion anti-fuga: ademas de una lista de patrones prohibidos universales
-(grado/estadio, IHQ, frases interpretativas, margenes/extension de la muestra --
-validos para cualquier tipo de cancer), se comprueban terminos DINAMICOS por fila,
-derivados de las propias columnas de metadatos de esa fila (cancer_type_detailed,
-site_of_resection_or_biopsy, OncotreeCode) -- necesario porque TCGA es pan-cancer
-(32 tipos, ver project_id) y no se puede enumerar a mano cada organo/entidad.
+Anti-leakage check: beyond a list of universal forbidden patterns (grade/
+stage, immunohistochemistry, interpretive phrasing, specimen margins/
+extent -- valid for any cancer type), per-row dynamic terms are derived
+from that row's own metadata columns (cancer_type_detailed,
+site_of_resection_or_biopsy, OncotreeCode) -- necessary because TCGA is
+pan-cancer (32 project types) and the organ/entity vocabulary cannot be
+enumerated by hand.
 
-Es un bucle sincrono (no Batch API) fila a fila, con checkpoint periodico a disco y
-reanudable: si se relanza el script, las filas que ya tienen texto en la columna
-nueva se saltan salvo --overwrite.
+This is a synchronous, row-by-row loop (no Batch API), with periodic
+checkpointing to disk and resumability: re-running the script skips rows
+that already have text in the new column, unless --overwrite is given.
 
-Uso tipico:
-  # 1) piloto pequeno, estratificado por tipo de cancer, para revisar calidad
-  #    (nunca toca el CSV maestro; vuelca a un CSV + JSON de revision aparte)
-  python3 filter_reports_no_diagnosis.py --pilot 40
+Typical usage:
+  # 1) small pilot, stratified by cancer type, to review quality before the
+  #    full batch (never touches the master CSV; writes to a separate
+  #    review CSV + JSON instead)
+  python3 generate_strict_reports.py --pilot 40
 
-  # -> revisar el CSV/JSON de revision (incluye que se quito de cada fila y si
-  #    sigue habiendo posible fuga tras los reintentos) antes de seguir
+  #    -> review the review CSV/JSON (what was removed per row, and
+  #       whether leakage remains after retries) before continuing
 
-  # 2) tanda completa (cohorte strict-common de 6.727 slides por defecto):
-  #    actualiza tcga_reports_cleaned.csv (columna nueva, escritura atomica) y
-  #    escribe un JSON de auditoria junto a el con que se quito/cambio por fila
-  python3 filter_reports_no_diagnosis.py
+  # 2) full batch over the target cohort: updates the master CSV (new
+  #    column, atomic write) and writes an audit JSON alongside it with
+  #    what was removed/changed per row
+  python3 generate_strict_reports.py --csv reports.csv
 
-  # si se corta a medias, relanzar el mismo comando reanuda donde se quedo
-  python3 filter_reports_no_diagnosis.py
+  # if interrupted partway, re-running the same command resumes where it
+  # left off
 
-Requiere: pip install openai pandas tqdm
-Autenticacion: variable de entorno OPENAI_API_KEY.
+Requires: pip install openai pandas tqdm
+Auth: OPENAI_API_KEY environment variable.
 """
 from __future__ import annotations
 
@@ -69,27 +71,24 @@ from tqdm import tqdm
 try:
     from openai import OpenAI, RateLimitError, APIError, APITimeoutError
 except ImportError:
-    sys.exit("Falta el SDK de OpenAI. Instala con: pip install openai")
+    sys.exit("Missing OpenAI SDK. Install with: pip install openai")
 
 
 # No default paths shipped with this release -- point --csv and
 # --strict-common-ids at your own master reports CSV and cohort id list
-# (see docs/DATA_FORMAT.md). Originally defaulted to this project's own
-# internal paths; that default was removed here, nothing else changed.
+# (see docs/DATA_FORMAT.md).
 DEFAULT_CSV = None
 DEFAULT_STRICT_COMMON_IDS = None
 SOURCE_COLUMN = "slide_reports"
 NEW_COLUMN = "slide_reports_no_diagnosis_strict"
 CSV_SEP = ";"
-# NOTA: "OncotreeCode" se quito de aqui (encontrado en la auditoria final de la
-# tanda completa). Es un codigo corto (p.ej. "ASTR" para Astrocytoma, "ODG"
-# para Oligodendroglioma) que no aporta cobertura nueva -- cancer_type_detailed
-# ya trae el mismo dato en texto completo ("Astrocytoma") -- pero al ser corto,
-# el matching dinamico con comodin (\bTERM\w*\b) lo convertia en un PREFIJO que
-# bloqueaba palabras legitimas: "ASTR" bloqueaba "astrocytic"/"astrocytic
-# features" (un descriptor de linaje celular real, no el nombre de la entidad)
-# en filas de LGG. cancer_type_detailed solo, al venir en palabras completas,
-# no tiene este problema.
+# OncotreeCode is deliberately not included here: it is a short code (e.g.
+# "ASTR" for Astrocytoma) that adds no coverage beyond cancer_type_detailed
+# (which carries the same information in full words), while its shortness
+# made the dynamic term matcher treat it as a prefix that blocked legitimate
+# words (e.g. "ASTR" blocking "astrocytic features", a real cell-lineage
+# descriptor, in LGG rows). cancer_type_detailed alone, matched on whole
+# words, does not have this problem.
 METADATA_COLUMNS_FOR_DYNAMIC_TERMS = ["cancer_type_detailed", "site_of_resection_or_biopsy"]
 
 
@@ -135,11 +134,11 @@ def safe_write_json(data, path: Path) -> None:
     tmp.replace(path)
 
 
-# ---------------- ANTI-LEAKAGE: patrones universales (pan-cancer) ----------------
+# ---------------- ANTI-LEAKAGE: pan-cancer universal patterns ----------------
 
 STATIC_FORBIDDEN_PATTERNS = [
-    # nombres de entidad diagnostica (raices genericas, cubren la mayoria de
-    # los 32 tipos de proyecto sin tener que enumerar cada combinacion)
+    # diagnostic entity names (generic roots, covering most of the 32
+    # project types without enumerating every combination)
     r"\bcarcinoma\b", r"\badenocarcinoma\b", r"\bsarcoma\b", r"\blymphoma\b",
     r"\bmelanoma\b", r"\bglioma\b", r"\bglioblastoma\b", r"\bastrocytoma\b",
     r"\boligodendroglioma\b", r"\bependymoma\b", r"\bmedulloblastoma\b",
@@ -147,59 +146,55 @@ STATIC_FORBIDDEN_PATTERNS = [
     r"\bmeningioma\b", r"\bschwannoma\b", r"\bneurofibroma\b",
     r"\bpheochromocytoma\b", r"\bparaganglioma\b", r"\bteratoma\b",
     r"\bgerm cell (tumor|neoplasia)\b",
-    # NOTA: "ductal"/"lobular" NO estan aqui a proposito (se quitaron de esta
-    # lista estatica tras encontrarlo en un piloto real). Son subtipo
-    # diagnostico SOLO en BRCA ("invasive ductal/lobular carcinoma"), pero en
-    # el resto de tipos de cancer (y a veces incluso dentro de BRCA) son
-    # vocabulario de arquitectura legitimo ("tubulo-lobular features",
-    # "ductal-pattern growth" -- el propio prompt invita a usar este ultimo).
-    # Bloquearlos en bloque hacia fallar casos correctos: un tumor DUCTAL
-    # descrito con un patron "tubulo-lobular" es una observacion real, no una
-    # fuga del subtipo lobular. En vez de una regla estatica universal, se
-    # dejan solo en dynamic_forbidden_terms(): si la propia fila es, p.ej.,
-    # "Breast Invasive Ductal Carcinoma" segun cancer_type_detailed, "ductal"
-    # se prohibe SOLO para esa fila (es su etiqueta real); si la fila es de
-    # otro tipo de cancer, o es lobular en vez de ductal, la palabra queda
-    # libre para usarse como arquitectura.
-    # NOTA: "neuroendocrine", "melanocytic", "anaplastic" y similares NO estan
-    # aqui a proposito -- son descriptores de tipo/linaje celular observables
-    # (que celulas se ven), no la etiqueta final de la entidad. Segun Victor:
-    # se conservan aunque den pista de la clase, mientras describan lo que
-    # realmente se ve. Ver prompt (distincion etiqueta vs. descripcion).
+    # "ductal"/"lobular" are deliberately absent from this static list: they
+    # name a diagnostic subtype only in breast cancer ("invasive ductal/
+    # lobular carcinoma"), but elsewhere (and even within breast cancer)
+    # they are legitimate architecture vocabulary ("tubulo-lobular
+    # features", "ductal-pattern growth" -- the prompt itself encourages
+    # the latter). Blocking them universally would fail correct cases: a
+    # ductal tumor described with a "tubulo-lobular" pattern is a genuine
+    # observation, not lobular-subtype leakage. They are instead handled
+    # per row in dynamic_forbidden_terms(): if a row's own
+    # cancer_type_detailed is "Breast Invasive Ductal Carcinoma", "ductal"
+    # is forbidden only for that row; otherwise the word stays free to use
+    # as architecture vocabulary.
+    # "neuroendocrine", "melanocytic", "anaplastic" and similar terms are
+    # also deliberately absent: they describe a visible cell type/lineage,
+    # not the final entity label, and are kept even when they hint at the
+    # diagnosis, as long as they describe what is actually observed (see
+    # the prompt's label-vs-description distinction).
 
-    # metastasis / origen
+    # metastasis / origin
     r"\bmetastasis\b", r"\bmetastatic\b", r"\bsecondary\b",
     r"\bprimary tumor\b", r"\bsite of origin\b",
 
-    # lenguaje interpretativo/conclusivo
+    # interpretive/conclusory language
     r"\bcompatible with\b", r"\bconsistent with\b", r"\bsuggestive of\b",
     r"\bin keeping with\b", r"\bfavor(s|ing)?\b", r"\bdiagnostic of\b",
 
-    # meta-comentario sobre el propio proceso de reescritura/filtrado (el modelo
-    # hablando de sus instrucciones en vez de describir el tejido -- visto en
-    # produccion real, ver conversacion)
+    # meta-commentary about the rewriting/filtering process itself (the
+    # model describing its own instructions instead of the tissue)
     r"\bdiagnostic leakage\b", r"\bmust be omitted\b", r"\bhas been (removed|omitted)\b",
     r"\bthese instructions\b", r"\bto (avoid|prevent) (revealing|disclosing|leaking)\b",
 
-    # grado / estadificacion como ETIQUETA FORMAL de clasificacion (numero,
-    # sistema con nombre, o el adjetivo "high/low-grade" usado como clase) --
-    # OJO: "well/moderately/poorly differentiated" y "undifferentiated" NO
-    # estan aqui a proposito. Segun feedback de Victor: la diferenciacion es
-    # una propiedad morfologica real y observable (organizacion celular,
-    # maduracion), distinta de un numero de grado formal -- se permite
-    # conservarla reformulada como observacion (ver prompt), no se prohibe
-    # en bloque. Ver conversacion.
+    # grade/stage as a FORMAL classification label (a number, a named
+    # system, or "high/low-grade" used as a class) -- "well/moderately/
+    # poorly differentiated" and "undifferentiated" are deliberately not
+    # included here: differentiation is a real, observable morphological
+    # property (cellular organization and maturity), distinct from a
+    # formal grade number, and is kept, rephrased as an observation (see
+    # the prompt), rather than blocked outright.
     r"\bwho grade\b", r"\bgleason\b", r"\bgrade\s*[ivx1-4]+\b",
     r"\bhigh[\s-]grade\b", r"\blow[\s-]grade\b",
 
-    # estadificacion
+    # staging
     r"\bp[tnm][0-4x]\b", r"\bstage [i1]+[iv]*\b", r"\btnm\b", r"\bconfined to\b",
 
-    # margenes / extension de la muestra
+    # specimen margins / extent
     r"\bmargin(s)?\b", r"\bresection margin\b", r"\bsurgical margin\b",
     r"\bentire specimen\b", r"\bwhole specimen\b", r"\bentire sample\b",
 
-    # IHQ / biomarcadores / molecular
+    # immunohistochemistry / biomarkers / molecular
     r"\bimmunohistochem\w*\b", r"\bmolecular\b", r"\bmutation\b",
     r"\bamplification\b", r"\btranslocation\b", r"\breceptor status\b",
     r"\bher2\b", r"\ber\b(?!\w)", r"\bpr\b(?!\w)", r"\bki[\s-]?67\b", r"\bmib[\s-]?1\b",
@@ -209,59 +204,56 @@ STATIC_FORBIDDEN_PATTERNS = [
     r"\bsynaptophysin\b", r"\bchromogranin\b", r"\bdesmin\b", r"\bcalretinin\b",
     r"\bhbme1?\b",
 
-    # descripcion MACROSCOPICA/gruesa de la pieza -- estos textos acompanan
-    # imagenes de microscopio (WSI, seccion fina tenida), no una foto de la
-    # pieza quirurgica entera. Cualquier dato de tamano/consistencia/aspecto
-    # de la pieza al ojo o al tacto no se puede observar en una imagen
-    # microscopica, asi que se prohibe aunque no sea "diagnostico" -- es
-    # simplemente el tipo de dato equivocado para este uso. Confirmado con
-    # Victor tras revisar el piloto: ~el 50% de las filas del CSV original
-    # tienen una medida en cm, asi que este patron es de alto impacto.
+    # gross/macroscopic specimen description -- these reports accompany a
+    # microscopic WSI (a thin stained section), not a photograph of the
+    # whole excised specimen. Any size/consistency/appearance of the
+    # specimen to the naked eye or hand cannot be observed in a
+    # microscopic image, so it is removed even when it is not diagnostic
+    # by itself -- it is simply the wrong kind of information for this
+    # image type.
     r"\b\d+(\.\d+)?\s*(cm|mm)\b",
     r"\bfleshy\b", r"\brubbery\b", r"\bfriable\b", r"\bspongy\b", r"\bgritty\b",
     r"\bfirm\b", r"\bcut surface(s)?\b", r"\bgross\b",
 ]
 
-# palabras genericas de metadatos que son vocabulario morfologico legitimo
-# (no delatan nada) -- se excluyen de la lista dinamica por fila. Incluye
-# adjetivos de citologia/arquitectura que a veces forman parte del NOMBRE de
-# la entidad (p.ej. "High-Grade Spindle Cell Sarcoma" en cancer_type_detailed)
-# pero que tambien son vocabulario morfologico legitimo fuera de ese nombre
-# (p.ej. "highly infiltrative growth", "pleomorphic nuclei") -- visto en
-# produccion real: "high" bloqueaba "highly infiltrative" sin motivo real.
+# Generic metadata words that are legitimate morphological vocabulary (they
+# reveal nothing) and are therefore excluded from the per-row dynamic term
+# list. Includes cytology/architecture adjectives that sometimes form part
+# of an entity's formal name (e.g. "High-Grade Spindle Cell Sarcoma" in
+# cancer_type_detailed) but are also legitimate morphology vocabulary
+# outside that name (e.g. "highly infiltrative growth", "pleomorphic
+# nuclei").
 DYNAMIC_TERM_STOPWORDS = {
     "gland", "glands", "tissue", "site", "type", "cell", "cells", "duct",
     "ducts", "nos", "other", "unclassified", "specified", "otherwise", "not",
     "and", "with", "invasive",
     "high", "low", "grade", "spindle", "pleomorphic", "pleomorphism",
     "clear", "giant", "small", "large",
-    # encontrados en la auditoria de la tanda completa: igual que
-    # "ductal"/"lobular" (ver STATIC_FORBIDDEN_PATTERNS), estas son palabras
-    # de arquitectura/patron histologico legitimas y universales que a veces
-    # tambien forman parte del NOMBRE del subtipo de la fila (p.ej. "Papillary
-    # Serous Carcinoma" en UCEC) -- bloquearlas en bloque impedia describir la
-    # arquitectura papilar/serosa/mucinosa real que el propio prompt anima a
-    # conservar. "soft"/"subcutaneous" bloqueaban tambien la profundidad de
-    # invasion real en SARC ("invasion into deep soft tissue"), no solo el
-    # organo de origen.
+    # Same reasoning as "ductal"/"lobular" above: legitimate, universal
+    # architecture/pattern vocabulary that can also appear inside a
+    # subtype's formal name (e.g. "Papillary Serous Carcinoma" in UCEC).
+    # Blocking them outright prevented describing real papillary/serous/
+    # mucinous architecture that the prompt otherwise encourages keeping;
+    # "soft"/"subcutaneous" similarly blocked real invasion-depth findings
+    # in SARC ("invasion into deep soft tissue"), not just the organ of
+    # origin.
     "papillary", "serous", "mucinous", "soft", "subcutaneous",
-    # "malignant" ya se habia quitado de STATIC_FORBIDDEN_PATTERNS (TCGA es
-    # 100% tumor, no discrimina nada) pero se colaba otra vez via dinamico
-    # cuando la propia cancer_type_detailed la contenia literalmente (p.ej.
-    # "Malignant Peripheral Nerve Sheath Tumor"). "nerve" es el nombre de una
-    # estructura anatomica real de la que el tumor puede surgir/a la que
-    # puede invadir -- describirlo es una observacion legitima (ver KEEP:
-    # "infiltration into a named adjacent structure"), no una fuga, aunque
-    # tambien aparezca en el nombre de esta entidad concreta.
+    # "malignant" is already absent from STATIC_FORBIDDEN_PATTERNS (TCGA is
+    # 100% tumor, so it carries no discriminative information) but was
+    # still being caught dynamically whenever cancer_type_detailed
+    # contained it literally (e.g. "Malignant Peripheral Nerve Sheath
+    # Tumor"). "nerve" names a real anatomical structure a tumor can arise
+    # from or invade; describing it is a legitimate observation, not
+    # leakage, even though it also appears in this entity's name.
     "malignant", "nerve",
 }
 
 
 def dynamic_forbidden_terms(row: pd.Series) -> set[str]:
-    """Terminos prohibidos derivados del propio metadato de la fila (organo,
-    tipo de cancer detallado, codigo Oncotree) -- necesario porque en TCGA
-    cambian por fila (32 tipos), a diferencia de un dataset de un solo
-    dominio como ASSIST."""
+    """Per-row forbidden terms derived from that row's own metadata
+    (organ, detailed cancer type, Oncotree code) -- needed because TCGA is
+    pan-cancer (32 types) and these terms vary by row, unlike a single-
+    domain dataset."""
     terms: set[str] = set()
     for col in METADATA_COLUMNS_FOR_DYNAMIC_TERMS:
         val = str(row.get(col, "") or "")
@@ -273,9 +265,9 @@ def dynamic_forbidden_terms(row: pd.Series) -> set[str]:
 
 
 def has_forbidden_leakage(text: str, dynamic_terms: set[str]) -> list[str]:
-    """Devuelve la lista de patrones/terminos que han saltado (vacia si el
-    texto esta limpio) -- se usa tanto para decidir si hay que reintentar
-    como para el JSON de auditoria (que se ha quitado / que sigue sucio)."""
+    """Returns the list of patterns/terms that matched (empty if the text
+    is clean); used both to decide whether to retry and for the audit JSON
+    (what was removed / what still leaks)."""
     text = text or ""
     matched = [p for p in STATIC_FORBIDDEN_PATTERNS if re.search(p, text, re.I)]
     for term in dynamic_terms:
@@ -592,9 +584,9 @@ def call_llm_with_backoff(client: OpenAI, model: str, system_prompt: str, payloa
             time.sleep(10)
 
 
-# Por debajo de esto, aunque has_sufficient_morphology venga en true, se trata como
-# "insuficiente" igualmente -- red de seguridad por si el modelo marca true pero en
-# la practica no escribe nada aprovechable.
+# Safety net: even if has_sufficient_morphology comes back true, output
+# shorter than this is still treated as insufficient, in case the model
+# flags true but writes nothing usable in practice.
 MIN_USEFUL_OUTPUT_CHARS = 20
 
 
@@ -666,7 +658,7 @@ def select_universe(df: pd.DataFrame, ids_csv: Path | None) -> pd.DataFrame:
     subset = df[df["slide_id"].isin(ids)].copy()
     missing = set(ids) - set(subset["slide_id"])
     if missing:
-        print(f"[aviso] {len(missing)} slide_id de {ids_csv} no aparecen en el CSV maestro.", file=sys.stderr)
+        print(f"[warning] {len(missing)} slide_id from {ids_csv} not found in the master CSV.", file=sys.stderr)
     return subset
 
 
@@ -689,29 +681,31 @@ def stratified_pilot(df: pd.DataFrame, n: int, seed: int = 0) -> pd.DataFrame:
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--csv", type=Path, default=DEFAULT_CSV, required=DEFAULT_CSV is None,
-                   help="CSV maestro (separador ';'), ver docs/DATA_FORMAT.md.")
+                   help="Master CSV (';'-separated), see docs/DATA_FORMAT.md.")
     p.add_argument("--strict-common-ids", type=Path, default=DEFAULT_STRICT_COMMON_IDS,
-                   help="Universo opcional: slide_id de la cohorte a procesar (omitir = --all).")
+                   help="Optional universe: slide_id of the cohort to process (omit = --all).")
     p.add_argument("--all", action="store_true",
-                   help="Usar los 10.108 slides del CSV maestro en vez del subset strict-common.")
+                   help="Use every row in the master CSV instead of the strict-common subset.")
     p.add_argument("--pilot", type=int, default=0,
-                   help="Muestrear N filas (estratificadas por project_id) para revisar calidad "
-                        "antes de lanzar la tanda completa.")
+                   help="Sample N rows (stratified by project_id) to review quality before "
+                        "launching the full batch.")
     p.add_argument("--pilot-review-out", type=Path, default=None,
-                   help="Con --pilot: en vez de fusionar en el CSV maestro, vuelca a este CSV de "
-                        "revision (por defecto /tmp/tcga_no_diagnosis_pilot_review.csv) y no toca --csv.")
+                   help="With --pilot: instead of merging into the master CSV, write to this "
+                        "review CSV (default /tmp/tcga_no_diagnosis_pilot_review.csv); --csv is "
+                        "never touched.")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--model", default="gpt-4.1")
     p.add_argument("--max-attempts", type=int, default=3)
     p.add_argument("--out", type=Path, default=None,
-                   help="Por defecto sobrescribe --csv (con escritura atomica). Usa esto para "
-                        "escribir en otra ruta y no tocar el original.")
+                   help="Defaults to overwriting --csv (atomic write). Use this to write "
+                        "elsewhere and leave the original untouched.")
     p.add_argument("--audit-json", type=Path, default=None,
-                   help="Por defecto, junto al csv de salida con sufijo _audit.json. Un objeto por "
-                        "fila procesada con lo que se quito/cambio y si sigue habiendo posible fuga.")
+                   help="Defaults to the output CSV path with an _audit.json suffix. One object "
+                        "per processed row with what was removed/changed and whether leakage "
+                        "may remain.")
     p.add_argument("--overwrite", action="store_true",
-                   help="Regenerar tambien filas que ya tienen texto en la columna nueva "
-                        "(por defecto se saltan, para poder reanudar una tanda cortada).")
+                   help="Also regenerate rows that already have text in the new column "
+                        "(default: skipped, so an interrupted batch can be resumed).")
     p.add_argument("--checkpoint-every", type=int, default=25)
     args = p.parse_args()
 
@@ -722,9 +716,9 @@ def main() -> None:
     is_pilot = bool(args.pilot)
     if is_pilot:
         universe = stratified_pilot(universe, args.pilot, seed=args.seed)
-        print(f"Piloto: {len(universe)} filas estratificadas por project_id.")
+        print(f"Pilot: {len(universe)} rows stratified by project_id.")
     else:
-        print(f"Tanda completa: {len(universe)} filas candidatas (antes de aplicar reanudacion).")
+        print(f"Full batch: {len(universe)} candidate rows (before applying resume logic).")
 
     universe = universe[universe[SOURCE_COLUMN].notna() & (universe[SOURCE_COLUMN].str.strip() != "")]
 
@@ -735,19 +729,19 @@ def main() -> None:
     audit_path = args.audit_json or out_path.with_name(out_path.stem + "_audit.json")
     review_csv_path = args.pilot_review_out or Path("/tmp/tcga_no_diagnosis_pilot_review.csv")
 
-    # se carga la auditoria previa (si existe) para que la reanudacion tambien
-    # sepa que filas ya se marcaron como "sin morfologia suficiente" -- esas no
-    # dejan texto en la columna del CSV, asi que sin esto se reprocesarian en
-    # cada relanzamiento del script.
+    # Load any previous audit so resume logic also knows which rows were
+    # already marked "insufficient morphology" -- those rows leave no text
+    # in the CSV column, so without this they would be reprocessed on
+    # every re-run.
     audit_rows: list[dict] = json.loads(audit_path.read_text()) if audit_path.exists() else []
     already_audited_ids = {r["slide_id"] for r in audit_rows}
     audit_by_id = {r["slide_id"]: r for r in audit_rows}
 
     if not args.overwrite:
-        # las filas ya auditadas en una corrida anterior (p.ej. un --pilot, que
-        # nunca escribe al CSV maestro) pueden tener el texto ya generado en el
-        # JSON pero todavia NO en la columna del CSV -- se rellena aqui antes de
-        # saltarlas, para no perder (ni volver a pagar) trabajo ya hecho.
+        # Rows already audited in a previous run (e.g. a --pilot, which
+        # never writes to the master CSV) may already have generated text
+        # in the JSON but not yet in the CSV column -- backfill it here
+        # before skipping, instead of losing (or re-paying for) that work.
         n_backfilled = 0
         for sid in already_audited_ids & set(universe["slide_id"]):
             r = audit_by_id[sid]
@@ -758,20 +752,20 @@ def main() -> None:
                 df.loc[mask, NEW_COLUMN] = r["rewritten_text"]
                 n_backfilled += 1
         if n_backfilled:
-            print(f"Recuperadas {n_backfilled} filas ya generadas en una corrida previa (auditoria) "
-                  f"-> columna del CSV rellenada sin volver a llamar a la API.")
+            print(f"Backfilled {n_backfilled} rows already generated in a previous run "
+                  f"(from the audit JSON) -> CSV column filled without calling the API again.")
 
         already_done_mask = df["slide_id"].isin(universe["slide_id"]) & df[NEW_COLUMN].apply(has_useful_text)
         skip_ids = set(df.loc[already_done_mask, "slide_id"]) | (already_audited_ids & set(universe["slide_id"]))
         universe = universe[~universe["slide_id"].isin(skip_ids)]
         if skip_ids:
-            print(f"Reanudacion: {len(skip_ids)} filas ya procesadas (con texto o marcadas sin "
-                  f"morfologia suficiente) -> se saltan (usa --overwrite para regenerarlas).")
+            print(f"Resuming: {len(skip_ids)} rows already processed (text present, or marked "
+                  f"as insufficient morphology) -> skipped (use --overwrite to regenerate them).")
     else:
         audit_rows = [r for r in audit_rows if r["slide_id"] not in set(universe["slide_id"])]
 
     if universe.empty:
-        print("Nada que procesar (todo ya generado, o el universo/filtro no selecciona filas).")
+        print("Nothing to process (everything already generated, or the universe/filter selects no rows).")
         return
 
     client = OpenAI()
@@ -809,18 +803,18 @@ def main() -> None:
             "attempts_used": r["attempts_used"],
         } for r in audit_rows if r["slide_id"] in set(universe["slide_id"])])
         review_df.to_csv(review_csv_path, index=False)
-        print(f"\nPiloto volcado para revision manual en {review_csv_path} ({len(review_df)} filas) "
-              f"y {audit_path} (detalle completo: texto original, terminos quitados, etc). "
-              f"No se ha tocado {args.csv}.")
+        print(f"\nPilot written for manual review to {review_csv_path} ({len(review_df)} rows) "
+              f"and {audit_path} (full detail: original text, removed terms, etc). "
+              f"{args.csv} was not touched.")
     else:
         safe_write_csv(df, out_path)
-        print(f"\nColumna '{NEW_COLUMN}' actualizada para {len(universe) - n_excluded} filas -> {out_path}")
+        print(f"\nColumn '{NEW_COLUMN}' updated for {len(universe) - n_excluded} rows -> {out_path}")
 
-    print(f"Auditoria completa en {audit_path}.")
-    print(f"  {n_excluded}/{len(universe)} filas excluidas por no tener morfologia real que describir "
-          f"(quedan sin valor en '{NEW_COLUMN}', no se ha inventado texto de relleno).")
-    print(f"  {n_leaked}/{len(universe)} filas siguen con posible fuga tras {args.max_attempts} "
-          f"intentos -- revisalas a mano.")
+    print(f"Full audit at {audit_path}.")
+    print(f"  {n_excluded}/{len(universe)} rows excluded for having no genuine morphology to "
+          f"describe (left empty in '{NEW_COLUMN}', no filler text invented).")
+    print(f"  {n_leaked}/{len(universe)} rows may still leak after {args.max_attempts} "
+          f"attempts -- review these manually.")
 
 
 if __name__ == "__main__":

@@ -40,7 +40,7 @@ def main() -> None:
     out_path = Path(bb_cfg["pool_cache_path"])
 
     if out_path.exists() and not args.overwrite:
-        print(f"{out_path} ya existe, usa --overwrite para regenerarlo. Nada que hacer.")
+        print(f"{out_path} already exists, use --overwrite to regenerate it. Nothing to do.")
         return
 
     case_ids = sorted(f.stem for f in image_dir.glob("*.npy"))
