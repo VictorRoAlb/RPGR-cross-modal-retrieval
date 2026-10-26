@@ -41,7 +41,7 @@ import tifffile
 
 QUERY_CASE = "TCGA-E2-A56Z-01Z-00-DX1.EC28E279-B869-4485-A19F-C732D4CCD374"
 TARGET_CASE = "TCGA-GM-A2DN-01Z-00-DX1.593003B0-BA87-486B-B472-D6B85867D54D"
-EXPECTED_TOP3_PATCH_COUNTS = [198, 210, 163]  # cross-checked against the candidate search, see METHOD_PROVENANCE.md
+EXPECTED_TOP3_PATCH_COUNTS = [198, 210, 163]  # cross-checked against the original candidate search
 
 PYRAMID_LEVEL = 3           # 16x downsample -- sharp enough to show histology, small enough to render fast
 COLORS = ["#4285F4", "#34A853", "#FB8C00"]

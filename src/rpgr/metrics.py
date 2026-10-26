@@ -29,8 +29,8 @@ existing library call. Both reduce to simple boolean-array operations once
 `rel` is already sorted by descending similarity (which it always is here),
 so they are reimplemented directly in numpy below to avoid a torch/
 torchmetrics dependency for what training-free re-ranking should not need.
-Verified to reproduce the original torch-based values exactly on real data
-(see tests/test_metrics_equivalence.py).
+Verified to reproduce the original torch-based values on real data (see
+METHOD_PROVENANCE.md).
 """
 from __future__ import annotations
 

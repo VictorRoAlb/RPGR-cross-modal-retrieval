@@ -18,7 +18,7 @@ authors:
     given-names: "Adrián"
     affiliation: "CVBLab, Human-Tech Institute, Universitat Politècnica de València"
 license: MIT
-repository-code: "https://github.com/VictorRoAlb/REPLACE-WITH-REPO-NAME"
+repository-code: "https://github.com/VictorRoAlb/RPGR-cross-modal-retrieval"
 preferred-citation:
   type: article
   title: "Stress-Testing Vision-Language Pathology Foundation Models for WSI-Report Cross-Modal Retrieval with Reciprocal Prototype-Guided Re-ranking"

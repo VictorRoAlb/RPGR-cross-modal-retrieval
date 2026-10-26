@@ -8,9 +8,7 @@ tifffile can read directly, exploiting the fact that Aperio SVS files store
 their associated images (thumbnail/label/macro) as ordinary TIFF pages
 inside the same multi-page container as the full-resolution slide.
 
-Verified byte-for-byte identical against a fully downloaded .svs before
-being trusted for new cases (see METHOD_PROVENANCE.md / the paper's
-qualitative retrieval example). Only reads from GDC; writes nothing there.
+Only reads from GDC; writes nothing there.
 """
 import io
 import json
