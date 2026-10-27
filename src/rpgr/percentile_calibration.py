@@ -1,10 +1,9 @@
 """
 percentile_calibration.py
 ==========================
-Row-wise percentile calibration (Eqs. 21-23 of the RPGR paper).
-
-Pure computation: takes an in-memory similarity matrix and returns its
-row-wise percentile transformation. No file I/O, no dataset-specific paths.
+Row-wise percentile calibration (Eqs. 21-23 of the RPGR paper): takes an
+in-memory similarity matrix and returns its row-wise percentile
+transformation.
 """
 from __future__ import annotations
 

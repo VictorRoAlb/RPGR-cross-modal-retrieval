@@ -7,10 +7,9 @@ Implements Eq. 3 of the RPGR paper: patch-level visual embeddings are
 L2-normalized, averaged, and the resulting vector is L2-normalized again to
 obtain a single global WSI-level representation.
 
-This module is pure computation. It takes an in-memory array of patch
-embeddings and returns the pooled vector -- it performs no file I/O and
-contains no dataset-specific paths. Loading patch embeddings from disk is
-the caller's responsibility (see scripts/).
+Takes an in-memory array of patch embeddings and returns the pooled
+vector; loading patch embeddings from disk is the caller's
+responsibility (see scripts/).
 """
 from __future__ import annotations
 

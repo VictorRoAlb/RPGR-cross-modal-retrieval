@@ -7,14 +7,12 @@ counts H, a coverage/support utility is computed for each feasible H, the
 smallest H reaching 97% of the best observed utility is selected (H*), and
 the resulting centroids are refined into similarity-weighted prototypes.
 
-This module is pure computation, extracted unchanged from the algorithmic
-core of the original prototype-construction library (part 1 of
-tcga_adaptive_lib.py). It performs no file I/O: it takes an in-memory patch
-matrix and returns the prototype bank. The batch/glue logic that discovers
-cases, reads .npy files from disk, parallelizes with joblib, and writes
-.npz caches (part 2 of the original file) is intentionally NOT included
-here -- that is dataset-specific orchestration, not part of the method,
-and belongs in scripts/.
+Extracted unchanged from the algorithmic core of the original
+prototype-construction library (part 1 of tcga_adaptive_lib.py): takes an
+in-memory patch matrix and returns the prototype bank. The batch/glue
+logic that discovers cases, reads .npy files from disk, parallelizes with
+joblib, and writes .npz caches (part 2 of the original file) is dataset
+orchestration, not part of the method, and belongs in scripts/ instead.
 
 Note: this function also computes and returns `q_proto`, a per-case
 "prototype confidence" score, kept for provenance/parity with the original

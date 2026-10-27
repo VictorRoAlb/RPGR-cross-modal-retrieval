@@ -11,9 +11,6 @@ This is a descriptive ablation only: point estimates (S_B, RPGR, delta).
 No confidence intervals, no hypothesis testing, no bootstrap, no
 permutation test, no Holm-Bonferroni correction, no p-values.
 
-Reads only from the paths given in --config. Writes only under output_dir.
-Uses exclusively rpgr.reranking and rpgr.metrics.
-
 Usage:
   python3 run_prototype_ablation.py --config ../configs/paths.yaml --scenario strict
 """

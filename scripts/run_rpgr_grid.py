@@ -16,9 +16,6 @@ backbones x 3 scenarios x 2 directions, subtype granularity only); this
 script does not compute them -- it covers TCGA only, 48 of the figure's 72
 panels.
 
-Reads only from the paths given in --config. Writes only under output_dir.
-Uses exclusively rpgr.reranking and rpgr.metrics.
-
 Usage:
   python3 run_rpgr_grid.py --config ../configs/paths.yaml
 """

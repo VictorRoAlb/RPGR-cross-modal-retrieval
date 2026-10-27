@@ -6,9 +6,6 @@ Reads raw per-case patch embeddings ONCE and writes their BGAP mean-pool
 and max-pool as a single .npz cache, so downstream table/figure scripts
 never need to re-read raw patches.
 
-Read-only over the patch-embedding directory given in the config; writes
-ONLY the .npz cache file at `pool_cache_path`, never near the source data.
-
 Usage:
   python3 build_pool_cache.py --config ../configs/paths.yaml --backbone KEEP
 """

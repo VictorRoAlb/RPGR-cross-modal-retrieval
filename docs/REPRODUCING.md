@@ -73,10 +73,6 @@ see `METHOD_PROVENANCE.md`.
 
 ## Figures
 
-- **Figure 3** (qualitative re-ranking example) is an illustrative,
-  case-specific figure built from a single hand-picked example; it is not
-  part of this release's reproducible pipeline in the same sense as the
-  tables above.
 - **Figure B.1** (prototype spatial overlay) can be regenerated for any
   case once you have its prototype bank and original WSI; see
   `figures/prototype_overlay.py`.

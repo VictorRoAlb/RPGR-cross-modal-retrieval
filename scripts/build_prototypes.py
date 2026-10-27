@@ -7,9 +7,8 @@ prototype bank for each case as a .npz file (one per case), using
 rpgr.prototypes.build_adaptive_prototypes_for_case with the paper's default
 AdaptiveSettings.
 
-Read-only over the patch-embedding directory given in the config; writes
-ONLY under `prototypes_dir`, never near the source data. Resumable: a case
-whose .npz already exists is skipped unless --overwrite is given.
+Resumable: a case whose .npz already exists is skipped unless --overwrite
+is given.
 
 Usage:
   python3 build_prototypes.py --config ../configs/paths.yaml --backbone KEEP

@@ -14,9 +14,7 @@ instead of assuming one, and asserts that both match a previously recorded
 count before drawing anything -- if either check fails, it stops rather
 than silently drawing something wrong.
 
-Requires a local copy of the query case's .svs file (this script does not
-fetch it -- see figures/utils/remote_svs_thumb.py for a thumbnail-only
-remote reader if you don't want the full file).
+Requires a local copy of the query case's .svs file.
 
 Usage:
   python3 prototype_overlay.py \\

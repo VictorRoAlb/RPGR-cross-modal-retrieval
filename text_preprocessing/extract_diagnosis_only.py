@@ -13,8 +13,6 @@ Output is meant to be fed straight into the same text-embedding generation
 script used for Original/Strict, via --text-field diagnosis_only_text --
 no separate embedding code is needed.
 
-Never writes to the source CSV.
-
 Usage:
   python3 extract_diagnosis_only.py --csv reports.csv --ids cohort_ids.csv --out diagnosis_only.csv
 """

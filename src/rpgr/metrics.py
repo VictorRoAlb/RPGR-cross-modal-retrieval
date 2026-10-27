@@ -4,12 +4,12 @@ metrics.py
 Class-macro retrieval metrics (Recall@1/3/5/10, MRR@10, mAP@10) and the
 exact-pair inclusion/exclusion policy used to rank each query's candidates.
 
-Pure computation: given an in-memory (n_queries, n_candidates) similarity
-matrix, the case ids ordering it, and a case_id -> label mapping, this
-module computes per-query metrics and aggregates them class-macro (every
-class counts equally, regardless of size). No file I/O, no dataset-specific
-paths, and no statistical inference of any kind -- no bootstrap, confidence
-intervals, permutation tests, Holm-Bonferroni correction, or p-values.
+Given an in-memory (n_queries, n_candidates) similarity matrix, the case
+ids ordering it, and a case_id -> label mapping, computes per-query
+metrics and aggregates them class-macro (every class counts equally,
+regardless of size). No statistical inference of any kind -- no
+bootstrap, confidence intervals, permutation tests, Holm-Bonferroni
+correction, or p-values.
 
 Exact-pair policy: the paper's final benchmark (Tables 2-3) and the
 RPGR-wide evaluation (Table 1 and Figure 2) both use exact-pair INCLUDED

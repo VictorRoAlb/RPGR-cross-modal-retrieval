@@ -8,9 +8,7 @@ textual scenario (3), semantic granularity (2), and retrieval direction
 (2), on the full retrieval cohort (all cases in each backbone's pool
 cache -- N=5291, "C_paper").
 
-Reads only from the paths given in --config. Writes only under output_dir.
-Uses exclusively rpgr.reranking.global_similarity and rpgr.metrics -- no
-prototype construction needed, since this is the BGAP-only baseline.
+No prototype construction needed, since this is the BGAP-only baseline.
 
 Usage:
   python3 run_stress_test.py --config ../configs/paths.yaml

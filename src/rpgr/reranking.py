@@ -4,9 +4,8 @@ reranking.py
 Reciprocal Prototype-Guided Re-ranking (RPGR): assembly of the final score
 (Eq. 24) and the Top-50 pool re-ranking rule (Section 3.6).
 
-Pure computation: operates on in-memory similarity matrices and prototype
-banks already produced by pooling.py / prototypes.py and a frozen text
-encoder. No file I/O, no dataset-specific paths.
+Operates on in-memory similarity matrices and prototype banks already
+produced by pooling.py / prototypes.py and a frozen text encoder.
 
 q_proto (the per-case prototype confidence computed in prototypes.py) is
 deliberately NOT used anywhere in this module -- the final RPGR score

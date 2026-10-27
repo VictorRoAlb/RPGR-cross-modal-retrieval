@@ -10,11 +10,6 @@ mAP@10, both I2T and T2I, KEEP backbone, Strict text, subtype
 Scope note: the paper also reports an analogous AI4SKIN benchmark (Table
 3, five-fold protocol); this script does not cover it.
 
-Reads only from the paths given in --config (pool cache, text embeddings,
-prototypes, split, labels). Writes only under output_dir. Uses exclusively
-rpgr.reranking and rpgr.metrics -- no dependency on eval_protocol.py or any
-other script outside this release.
-
 Usage:
   python3 run_heldout_rpgr.py --config ../configs/paths.yaml --backbone KEEP --scenario strict
 """
