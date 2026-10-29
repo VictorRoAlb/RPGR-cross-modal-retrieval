@@ -19,9 +19,9 @@ resumable and safe to re-run, and accepts `--n-jobs` for parallelism.
 
 Note: prototypes regenerated this way will be extremely close to, but not
 bit-identical with, whatever cache produced the paper's own numbers --
-see the "Known limitation" section of `METHOD_PROVENANCE.md`. Expect
-agreement to 3-4 decimal places, not exact, unless you start from the
-paper's original prototype cache rather than regenerating it.
+see `METHOD_PROVENANCE.md`. Expect agreement to 3-4 decimal places, not
+exact, unless you start from the paper's original prototype cache rather
+than regenerating it.
 
 ## Table 1 — stress-testing frozen VL-PFMs (BGAP only)
 
