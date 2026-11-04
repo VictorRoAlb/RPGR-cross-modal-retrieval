@@ -11,9 +11,10 @@ license = { file = "LICENSE" }
 requires-python = ">=3.11"
 authors = [
     { name = "Víctor Rodríguez-Albendea" },
-    { name = "Pablo Meseguer" },
     { name = "Cristóbal Giménez" },
-    { name = "Adrián Colomer Granero" },
+    { name = "Pablo Meseguer" },
+    { name = "Liria Terradez" },
+    { name = "Adrián Colomer" },
 ]
 dependencies = [
     "numpy>=2.0",
