@@ -2,12 +2,14 @@
 """
 prototype_overlay.py
 =======================
-Reproduces Figure B.1: the three most report-compatible local prototypes
-of a real WSI, projected back onto the slide as coloured patch overlays.
+Spatial view of RPGR's local evidence: the patches of a real WSI assigned to the
+prototype that is most compatible with a given report (h* = argmax_h cos(p_h, report),
+the prototype used by S_P), projected back onto the slide.
 
 The query/target case pair (TCGA-E2-A56Z / TCGA-GM-A2DN) is hardcoded, not
 chosen dynamically -- it is the exact case already verified in the paper.
-The script re-derives the Top-3 prototype indices and patch assignments
+The script re-derives h* and the patch assignment (nearest prototype by cosine;
+the stored bank has no per-patch labels, so this is an approximation)
 from the actual prototype bank and patch embeddings (not from a cached
 picture), reads the real patch-size footprint from the SVS's own metadata
 instead of assuming one, and asserts that both match a previously recorded
@@ -39,10 +41,10 @@ import tifffile
 
 QUERY_CASE = "TCGA-E2-A56Z-01Z-00-DX1.EC28E279-B869-4485-A19F-C732D4CCD374"
 TARGET_CASE = "TCGA-GM-A2DN-01Z-00-DX1.593003B0-BA87-486B-B472-D6B85867D54D"
-EXPECTED_TOP3_PATCH_COUNTS = [198, 210, 163]  # cross-checked against the original candidate search
+EXPECTED_HSTAR_PATCH_COUNT = [198]  # cross-checked against the verified figure (h* = 16, H* = 48)
 
 PYRAMID_LEVEL = 3           # 16x downsample -- sharp enough to show histology, small enough to render fast
-COLORS = ["#4285F4", "#34A853", "#FB8C00"]
+COLORS = ["#4285F4"]
 FILL_ALPHA = 0.16
 EDGE_ALPHA = 0.95
 TISSUE_BG_THRESHOLD = 235    # mean intensity above which a pixel counts as background
@@ -83,16 +85,16 @@ def main() -> None:
     text_vec = np.load(args.text_embeddings_dir / f"{TARGET_CASE}.npy").astype(np.float64).reshape(-1)
     text_vec = text_vec / max(np.linalg.norm(text_vec), 1e-12)
     sims = protos @ text_vec
-    top3_idx = np.argsort(-sims)[:3]
-    print(f"  Top-3 prototype indices: {top3_idx.tolist()}  sims={sims[top3_idx].round(3).tolist()}")
+    top3_idx = np.argsort(-sims, kind="stable")[:1]  # only the winning prototype h*
+    print(f"  h* = {int(top3_idx[0])}  cos={sims[top3_idx[0]]:.4f}  (H* = {len(sims)})")
 
     print("loading raw patches + real coordinates, assigning nearest-centroid...")
     patches = l2n(np.load(args.patch_embeddings_dir / f"{QUERY_CASE}.npy").astype(np.float64))
     coords = np.load(args.patch_coords_dir / f"{QUERY_CASE}.npy")
     assign = np.argmax(patches @ protos.T, axis=1)
     counts = [int((assign == idx).sum()) for idx in top3_idx]
-    print(f"  patches per Top-3 prototype: {counts}  (expected {EXPECTED_TOP3_PATCH_COUNTS})")
-    assert counts == EXPECTED_TOP3_PATCH_COUNTS, "patch count mismatch vs the candidate search -- STOP"
+    print(f"  patches assigned to h*: {counts}  (expected {EXPECTED_HSTAR_PATCH_COUNT})")
+    assert counts == EXPECTED_HSTAR_PATCH_COUNT, "patch count mismatch vs the verified figure -- STOP"
 
     with tifffile.TiffFile(args.svs_path) as tf:
         desc = tf.pages[0].description
@@ -129,8 +131,8 @@ def main() -> None:
     mask_top3 = np.isin(assign, top3_idx)
     ok_bounds = ((px[mask_top3] >= -1) & (px[mask_top3] <= cropped.shape[1] + patch_w_lvl) &
                  (py[mask_top3] >= -1) & (py[mask_top3] <= cropped.shape[0] + patch_h_lvl)).all()
-    assert ok_bounds, "a Top-3 patch falls outside the crop -- spatial misalignment, STOP"
-    print("  verified: every Top-3 patch falls inside the crop, no spatial offset")
+    assert ok_bounds, "an h* patch falls outside the crop -- spatial misalignment, STOP"
+    print("  verified: every h* patch falls inside the crop, no spatial offset")
 
     def render(linewidth: float, tag: str) -> None:
         fig_w = cropped.shape[1] / DPI
@@ -153,8 +155,8 @@ def main() -> None:
                                         facecolor="none", edgecolor=color, alpha=EDGE_ALPHA,
                                         linewidth=linewidth, zorder=3))
 
-        legend_handles = [Patch(facecolor=COLORS[k], edgecolor=COLORS[k], alpha=0.85, label=f"Prototype {k + 1}")
-                          for k in range(3)]
+        legend_handles = [Patch(facecolor=COLORS[k], edgecolor=COLORS[k], alpha=0.85, label="Report-matched prototype")
+                          for k in range(1)]
         leg = ax.legend(handles=legend_handles, loc="lower right", frameon=True, framealpha=0.95,
                          edgecolor="#333333", fontsize=13, handlelength=1.2, handleheight=1.2,
                          borderpad=0.7, labelspacing=0.5, bbox_to_anchor=(0.985, 0.02))
