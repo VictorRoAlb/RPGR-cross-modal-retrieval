@@ -45,7 +45,7 @@ def main() -> None:
     case_ids = sorted(f.stem for f in image_dir.glob("*.npy"))
     if not args.overwrite:
         case_ids = [cid for cid in case_ids if not (out_dir / f"{cid}_prototype.npz").exists()]
-    print(f"[{args.backbone}] {len(case_ids)} casos por procesar (n_jobs={args.n_jobs})")
+    print(f"[{args.backbone}] {len(case_ids)} cases to process (n_jobs={args.n_jobs})")
 
     settings = AdaptiveSettings()
 
@@ -77,7 +77,7 @@ def main() -> None:
         from joblib import Parallel, delayed
         Parallel(n_jobs=args.n_jobs, backend="loky", verbose=10)(delayed(process_one)(cid) for cid in case_ids)
 
-    print(f"listo en {time.time() - t0:.1f}s -> {out_dir}")
+    print(f"done in {time.time() - t0:.1f}s -> {out_dir}")
 
 
 if __name__ == "__main__":

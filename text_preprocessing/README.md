@@ -1,8 +1,8 @@
 # Text preprocessing
 
 Three textual conditions are used throughout the paper: Original (the
-report as-is, not reproduced here since it needs no processing), Strict,
-and Diagnosis-only.
+report as-is, not reproduced here since it needs no processing),
+Morphology-only (stored and referred to in code as `strict`) and Diagnosis-only.
 
 `generate_strict_reports.py` removes explicit diagnostic terminology from a
 report while keeping its histological/morphological description, using

@@ -2,7 +2,7 @@
 """
 build_pool_cache.py
 ====================
-Reads raw per-case patch embeddings ONCE and writes their BGAP mean-pool
+Reads raw per-case patch embeddings ONCE and writes their mean-pool
 and max-pool as a single .npz cache, so downstream table/figure scripts
 never need to re-read raw patches.
 
@@ -41,7 +41,7 @@ def main() -> None:
         return
 
     case_ids = sorted(f.stem for f in image_dir.glob("*.npy"))
-    print(f"[{args.backbone}] {len(case_ids)} casos en {image_dir}")
+    print(f"[{args.backbone}] {len(case_ids)} cases in {image_dir}")
 
     t0 = time.time()
     mean_pool = np.empty((len(case_ids), bb_cfg["dim"]), dtype=np.float32)
@@ -55,7 +55,7 @@ def main() -> None:
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     np.savez(out_path, case_ids=np.array(case_ids), mean_pool=mean_pool, max_pool=max_pool_arr)
-    print(f"escrito {out_path} ({time.time() - t0:.1f}s, {mean_pool.shape})")
+    print(f"written {out_path} ({time.time() - t0:.1f}s, {mean_pool.shape})")
 
 
 if __name__ == "__main__":

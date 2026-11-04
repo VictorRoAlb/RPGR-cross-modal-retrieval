@@ -2,13 +2,13 @@
 """
 run_stress_test.py
 ====================
-Reproduces Table 1 (stress-testing of frozen VL-PFMs using BGAP, no
+Reproduces the baseline stress test of frozen VL-PFMs (mean pooling, no
 re-ranking): class-macro mAP@10 for every combination of backbone (4),
 textual scenario (3), semantic granularity (2), and retrieval direction
 (2), on the full retrieval cohort (all cases in each backbone's pool
 cache -- N=5291, "C_paper").
 
-No prototype construction needed, since this is the BGAP-only baseline.
+No prototype construction needed (mean pooling only).
 
 Usage:
   python3 run_stress_test.py --config ../configs/paths.yaml
@@ -58,7 +58,7 @@ def main() -> None:
         cache = np.load(bb_cfg["pool_cache_path"], allow_pickle=True)
         case_ids = list(cache["case_ids"])
         mean_pool = cache["mean_pool"].astype(np.float64)
-        print(f"\n=== {bb}: {len(case_ids)} casos ===")
+        print(f"\n=== {bb}: {len(case_ids)} cases ===")
         label_maps = {g: labels_df.loc[case_ids, g].to_dict() for g in GRANULARITIES}
 
         for scenario in SCENARIOS:
@@ -82,7 +82,7 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "stress_test_table1.csv"
     df.to_csv(out_path, index=False)
-    print(f"\n{len(df)} filas (esperado 48) -> {out_path}")
+    print(f"\n{len(df)} rows (expected 48) -> {out_path}")
 
 
 if __name__ == "__main__":

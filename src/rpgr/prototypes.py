@@ -1,25 +1,16 @@
 """
 prototypes.py
 =============
-Adaptive WSI-specific local prototype construction (Eqs. 6-18 of the RPGR
-paper): for each WSI, k-means is evaluated over a discrete grid of cluster
-counts H, a coverage/support utility is computed for each feasible H, the
-smallest H reaching 97% of the best observed utility is selected (H*), and
-the resulting centroids are refined into similarity-weighted prototypes.
+Adaptive WSI-specific local prototypes. For each WSI, mini-batch k-means is run for every
+H in a fixed grid. A coverage/support utility is computed for each feasible H, and the
+smallest H reaching 97% of the best utility is selected (H*). The H* centroids are then
+refined into similarity-weighted prototypes.
 
-Extracted unchanged from the algorithmic core of the original
-prototype-construction library (part 1 of tcga_adaptive_lib.py): takes an
-in-memory patch matrix and returns the prototype bank. The batch/glue
-logic that discovers cases, reads .npy files from disk, parallelizes with
-joblib, and writes .npz caches (part 2 of the original file) is dataset
-orchestration, not part of the method, and belongs in scripts/ instead.
+Input: an in-memory (N_i, d) patch matrix. Output: the prototype bank, plus diagnostics
+(H*, utility curve, q_proto). RPGR uses only the prototype bank, through
+max_h cos(prototype, report) (see reranking.py).
 
-Note: this function also computes and returns `q_proto`, a per-case
-"prototype confidence" score, kept for provenance/parity with the original
-implementation. RPGR itself (reranking.py) does NOT use q_proto -- the
-final formula combines global and prototype evidence through percentile
-calibration and a geometric mean (Eq. 24), with no confidence-weighted
-mixing term.
+Bit-exact reproduction of stored banks requires scikit-learn 1.7.2 (see requirements.txt).
 """
 from __future__ import annotations
 
@@ -34,14 +25,14 @@ from sklearn.cluster import MiniBatchKMeans
 @dataclass(frozen=True)
 class AdaptiveSettings:
     k_grid: tuple[int, ...] = (2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 160, 200)
-    min_support: int = 6       # tau_min (Eq. 7)
-    good_support: int = 20     # tau_sup (Eq. 10)
-    near_best_ratio: float = 0.97  # rho (Eq. 13)
+    min_support: int = 6       # tau_min
+    good_support: int = 20     # tau_sup
+    near_best_ratio: float = 0.97  # rho
     random_state: int = 42
     n_init: int = 5
     max_iter: int = 200
     batch_size: int = 1024
-    softmax_tau: float = 0.05  # tau_sm (Eq. 15)
+    softmax_tau: float = 0.05  # tau_sm
 
 
 def _clip01(value: float) -> float:
@@ -77,18 +68,18 @@ def _weighted_centroid_refine(
         if cluster_patches.shape[0] == 0:
             refined[k] = plain_prototypes[k]
             continue
-        cluster_centroid = _normalize(cluster_patches.mean(axis=0), axis=0)  # Eq. 14
+        cluster_centroid = _normalize(cluster_patches.mean(axis=0), axis=0)
         sims = cluster_patches @ cluster_centroid
         logits = (sims / tau).astype(np.float64)
         logits -= logits.max()  # numerical stability only, does not change the softmax
         weights = np.exp(logits)
-        weights /= weights.sum()  # Eq. 15
-        refined[k] = (weights[:, None] * cluster_patches).sum(axis=0).astype(np.float32)  # Eq. 16
+        weights /= weights.sum()
+        refined[k] = (weights[:, None] * cluster_patches).sum(axis=0).astype(np.float32)
     return _normalize(refined, axis=1)
 
 
 def _fallback_result(case_id: str, patch_matrix: np.ndarray, settings: AdaptiveSettings, notes: str) -> dict[str, Any]:
-    """Eq. 18: N_i < 2*tau_min -> single prototype = normalized mean patch."""
+    """Fallback: N_i < 2*tau_min -> single prototype = normalized mean patch."""
     n_patches = int(patch_matrix.shape[0])
     embedding_dim = int(patch_matrix.shape[1]) if patch_matrix.ndim == 2 else 0
     if n_patches > 0:
@@ -141,7 +132,7 @@ def build_adaptive_prototypes_for_case(
 
     valid_k = sorted({
         int(k) for k in settings.k_grid
-        if int(k) <= n_patches and (n_patches / int(k)) >= settings.min_support  # Eq. 7
+        if int(k) <= n_patches and (n_patches / int(k)) >= settings.min_support
     })
     if not valid_k:
         return _fallback_result(case_id, patch_matrix, settings, "fallback_low_patch_support")
@@ -157,9 +148,9 @@ def build_adaptive_prototypes_for_case(
             assignments = kmeans.fit_predict(normalized_patches).astype(np.int16)
             prototypes = _normalize(np.asarray(kmeans.cluster_centers_, dtype=np.float32), axis=1)
             sim = normalized_patches @ prototypes.T
-            coverage = float(np.max(sim, axis=1).mean()) if sim.size else math.nan  # Eq. 9
-            support = _clip01((n_patches / k_value) / max(settings.good_support, 1))  # Eq. 10
-            utility = float(coverage * support) if math.isfinite(coverage) else math.nan  # Eq. 11
+            coverage = float(np.max(sim, axis=1).mean()) if sim.size else math.nan
+            support = _clip01((n_patches / k_value) / max(settings.good_support, 1))
+            utility = float(coverage * support) if math.isfinite(coverage) else math.nan
             records[int(k_value)] = {
                 "K": int(k_value), "prototypes": prototypes.astype(np.float32),
                 "assignments": assignments, "coverage": coverage, "support": support, "utility": utility,
@@ -171,10 +162,10 @@ def build_adaptive_prototypes_for_case(
     if not valid_results:
         return _fallback_result(case_id, patch_matrix, settings, "fallback_kmeans_failure")
 
-    best_utility = float(max(r["utility"] for r in valid_results))  # Eq. 12 (U*_i)
+    best_utility = float(max(r["utility"] for r in valid_results))
     threshold = float(settings.near_best_ratio * best_utility)
     near_best = [r for r in valid_results if r["utility"] >= threshold]
-    selected = min(near_best, key=lambda r: r["K"]) if near_best else max(valid_results, key=lambda r: r["utility"])  # Eq. 13
+    selected = min(near_best, key=lambda r: r["K"]) if near_best else max(valid_results, key=lambda r: r["utility"])
 
     q_proto = 0.0 if (not math.isfinite(best_utility) or best_utility <= 0.0) else _clip01(float(selected["utility"]))
 

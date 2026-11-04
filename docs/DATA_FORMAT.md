@@ -16,38 +16,34 @@ pre-normalized -- `pooling.bgap` and `prototypes.build_adaptive_prototypes_for_c
 both L2-normalize internally.
 
 How these patches were produced (patch size, magnification, tissue
-segmentation, colour normalization) is described in the paper's Section 4.2.
-That preprocessing is external to this repository: it produced the `.npy`
-files above, but no script here performs it, and none is included, because
-none was used to write this release.
+segmentation, colour normalization) is described in the paper. That preprocessing is external to this
+repository.
 
 ## Pathology-report text embeddings
 
 One `.npy` file per case, named `<case_id>.npy`, holding a `(d,)` float
 vector from the same frozen model's text encoder, `d` matching the visual
 side for that backbone. A separate directory per textual scenario
-(Original / Strict / Diagnosis-only) is expected, since a case's report is
+(Original / Morphology-only, stored as `strict` / Diagnosis-only) is expected, since a case's report is
 represented differently under each.
 
 ## Precomputed caches (produced by this repository)
 
 - **Pool cache** (`scripts/build_pool_cache.py` output): one `.npz` per
   backbone with `case_ids` (N,), `mean_pool` (N, d), `max_pool` (N, d) --
-  the BGAP/max-pool of every case's patches, computed once so downstream
+  the mean-pool and max-pool of every case's patches, computed once so downstream
   scripts never re-read raw patches.
 - **Prototype bank** (`scripts/build_prototypes.py` output): one
   `<case_id>_prototype.npz` per case, holding `prototypes` (K*, d,
   L2-normalized), `K_star`, `coverage`, `support`, `utility`, `q_proto`,
-  `n_patches`. `q_proto` is retained for parity with the original
-  implementation but is not used anywhere in the RPGR score itself.
+  `n_patches`. `q_proto` is a diagnostic and is not used by the RPGR score.
 
 ## Cohort and label files
 
 - **Split CSV**: at minimum a `slide_id` column and a `split` column with
   values among `train`/`val`/`test`. The paper's split is case-level
   (every WSI of the same case in the same partition) and stratified by
-  subtype with a fixed seed -- see the paper's Section 4.1 for the exact
-  procedure; this repository consumes whatever split file it is given, it
+  subtype with a fixed seed -- see the paper for the exact procedure; this repository consumes whatever split file it is given, it
   does not regenerate one.
 - **Labels CSV**: a `slide_id` column plus one column per granularity used
   (`OncotreeCode` for subtype, `project_id` for organ/project in the
@@ -57,6 +53,4 @@ represented differently under each.
 
 Raw whole-slide images, raw patch extraction code, and the code that
 produced the visual patch embeddings above are all outside this
-repository's scope -- see Section 4.2 of the paper for what was used, and
-treat any claim beyond that paragraph as unverified until you have checked
-it against your own pipeline.
+repository's scope; the paper describes what was used.

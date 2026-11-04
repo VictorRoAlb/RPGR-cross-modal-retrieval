@@ -1,23 +1,18 @@
 #!/usr/bin/env python3
 """
 run_rpgr_grid.py
-==================
-Reproduces the TCGA half of Figure 2 (effect of RPGR across the complete
-48-condition evaluation grid): for every combination of backbone (4),
-textual scenario (3), semantic granularity (2), and retrieval direction
-(2), computes both the BGAP baseline mAP@10 and the RPGR mAP@10 on the
-full retrieval cohort (all cases present in each backbone's pool cache --
-N=5291 in the paper, "C_paper"). Also reproduces Table 1 alone if you only
-need BGAP: see run_stress_test.py, which shares the same loop but skips
-the RPGR side.
+================
+RPGR versus mean pooling across backbones (KEEP, CONCH, MUSK, PATHO-CLIP), report
+conditions (Original, Morphology-only, Diagnosis-only), semantic levels (organ, subtype)
+and directions (I2T, T2I): 48 TCGA conditions.
 
-Scope note: Figure 2 also shows 24 analogous AI4SKIN conditions (4
-backbones x 3 scenarios x 2 directions, subtype granularity only); this
-script does not compute them -- it covers TCGA only, 48 of the figure's 72
-panels.
+Queries = gallery = the training + test partitions of the subtype split. The validation
+partition is excluded because it was used for method development and baseline tuning.
+Writes class-macro mAP@10 of both methods per condition. The AI4SKIN conditions require
+the non-public AI4SKIN data and are not covered.
 
 Usage:
-  python3 run_rpgr_grid.py --config ../configs/paths.yaml
+  python3 run_rpgr_grid.py --config ../configs/paths.yaml [--backbones KEEP CONCH]
 """
 from __future__ import annotations
 
@@ -31,7 +26,7 @@ import pandas as pd
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from rpgr.reranking import global_similarity, prototype_similarity, rpgr_score, rerank_top_pool  # noqa: E402
+from rpgr.reranking import global_similarity, prototype_similarity, rpgr_score  # noqa: E402
 from rpgr.metrics import evaluate_direction, class_level_table, macro_from_class_level  # noqa: E402
 
 SCENARIOS = ["original", "strict", "diagnosis_only"]
@@ -70,17 +65,20 @@ def main() -> None:
         bb_cfg = cfg["backbones"][bb]
         t0 = time.time()
         cache = np.load(bb_cfg["pool_cache_path"], allow_pickle=True)
-        case_ids = list(cache["case_ids"])
-        mean_pool = cache["mean_pool"].astype(np.float64)
+        split_df = pd.read_csv(cfg["cohort"]["split_csv"])
+        keep = set(split_df[split_df.split.isin(["train", "test"])].slide_id)
+        idx = [i for i, c in enumerate(cache["case_ids"]) if c in keep]
+        case_ids = [cache["case_ids"][i] for i in idx]
+        mean_pool = l2_normalize_rows(cache["mean_pool"][idx].astype(np.float64))
         n = len(case_ids)
-        print(f"\n=== {bb}: {n} casos ===")
+        print(f"\n=== {bb}: {n} cases ===")
 
         proto_dir = Path(bb_cfg["prototypes_dir"])
         prototype_banks = [
             l2_normalize_rows(np.load(proto_dir / f"{cid}_prototype.npz")["prototypes"].astype(np.float64))
             for cid in case_ids
         ]
-        print(f"  prototipos listos ({time.time() - t0:.1f}s)")
+        print(f"  prototypes loaded ({time.time() - t0:.1f}s)")
 
         label_maps = {g: labels_df.loc[case_ids, g].to_dict() for g in GRANULARITIES}
 
@@ -91,11 +89,11 @@ def main() -> None:
 
             sim_global = global_similarity(mean_pool, text_mat)
             sim_proto = prototype_similarity(prototype_banks, text_mat)
-            score = rpgr_score(sim_global, sim_proto)
-            print(f"  [{scenario}] scores listos ({time.time() - t0:.1f}s)")
+            print(f"  [{scenario}] scores ready ({time.time() - t0:.1f}s)")
 
             for direction in DIRECTIONS:
-                final_scores = rerank_top_pool(sim_global, score, direction, n_pool=50)
+                G, P = (sim_global, sim_proto) if direction == "I2T" else (sim_global.T, sim_proto.T)
+                final_scores = rpgr_score(G, P)
                 bgap_scores = sim_global if direction == "I2T" else sim_global.T
 
                 for granularity in GRANULARITIES:
@@ -117,10 +115,9 @@ def main() -> None:
     df = pd.DataFrame(rows)
     out_dir = Path(cfg["output_dir"])
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / "rpgr_grid_figure2_tcga.csv"
+    out_path = out_dir / "rpgr_grid_tcga.csv"
     df.to_csv(out_path, index=False)
-    print(f"\n{len(df)} filas (esperado 48 con los 4 backbones; TCGA only, "
-          f"ver nota de alcance en el docstring) -> {out_path}")
+    print(f"\n{len(df)} rows (48 expected with the 4 backbones) -> {out_path}")
 
 
 if __name__ == "__main__":

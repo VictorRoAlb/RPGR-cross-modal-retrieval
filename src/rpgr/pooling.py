@@ -1,9 +1,9 @@
 """
 pooling.py
 ==========
-Batch Global Average Pooling (BGAP) for whole-slide image representations.
+Global WSI representations by mean pooling (and max pooling, a baseline).
 
-Implements Eq. 3 of the RPGR paper: patch-level visual embeddings are
+Mean pooling: patch-level visual embeddings are
 L2-normalized, averaged, and the resulting vector is L2-normalized again to
 obtain a single global WSI-level representation.
 
@@ -31,7 +31,7 @@ def l2_normalize_rows(matrix: np.ndarray, eps: float = EPS) -> np.ndarray:
 
 
 def bgap(patch_embeddings: np.ndarray) -> np.ndarray:
-    """Batch Global Average Pooling (Eq. 3).
+    """Mean pooling of L2-normalised patch embeddings, L2-normalised again.
 
     Parameters
     ----------

@@ -1,16 +1,24 @@
-# Versions actually used to build and verify this release (Python 3.11.14).
-# See pyproject.toml for a more granular split -- src/rpgr/ itself only
-# needs the first three; the rest are for scripts/ and figures/.
-numpy==2.4.6
-pandas==3.0.5
-scikit-learn==1.9.0
+# Environment in which the held-out RPGR numbers (TCGA test, KEEP) were reproduced exactly and
+# the stored prototype banks checked (6 TCGA test WSIs) were rebuilt bit-for-bit (Python 3.12.3). scikit-learn MUST be 1.7.2: MiniBatchKMeans in 1.9.x
+# yields different prototype banks (same H*, max |diff| ~0.05). Scoring/evaluation alone
+# (from existing prototype banks) was also verified with numpy 2.5.4 / pandas 3.1.1 / scipy 1.18.1.
+numpy==2.1.0
+pandas==2.3.3
+scipy==1.16.3
+scikit-learn==1.7.2
 
 # scripts/
 pyyaml==6.0.3
-joblib==1.5.3
+joblib==1.5.2
 
-# figures/
+# figures/ (verified: figures/prototype_overlay.py reproduces the paper figure)
 matplotlib==3.11.1
-pillow==12.3.0
 tifffile==2026.3.3
-weasyprint==69.0
+imagecodecs==2026.3.6  # tifffile needs it to decode the JPEG tiles of .svs files
+
+# tests/
+pytest==9.2.0
+
+# text_preprocessing/ (calls the OpenAI API; not executed during verification)
+# openai
+# tqdm
