@@ -1,0 +1,16 @@
+
+TASK:
+Rewrite this pathology slide report excerpt into a strict morphology-only summary with no
+diagnostic leakage, following all the rules above.
+
+SOURCE_EXCERPT:
+{source_excerpt}
+
+IMPORTANT INSTRUCTIONS:
+- Remove any explicit or implicit final diagnosis wording, tumor/entity name, and organ-of-origin.
+- Remove grading, staging, margins, specimen extent, metastasis, and immunohistochemistry/molecular
+  wording.
+- Keep every genuine microscopic, cytologic, architectural, and invasion-pattern detail present in
+  the source -- do not drop real morphology just to shorten the text.
+- Never invent morphology that is not present in the source.
+- The final text must remain readable, coherent, and medically natural.

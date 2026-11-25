@@ -1,0 +1,9 @@
+
+
+RETRY MODE:
+Your previous output leaked forbidden diagnostic/grading/staging/organ/biomarker information.
+Specifically, it still contained (or matched) one or more of: {forbidden_terms}.
+
+You must now be stricter and specifically avoid every one of those terms and anything that
+implies them. If needed, produce a shorter and more conservative summary -- it is better to be
+brief than to leak diagnostic information.

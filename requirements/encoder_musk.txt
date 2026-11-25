@@ -1,0 +1,15 @@
+# Text encoder of MUSK (xiangjx/musk @ de1ffed28608c197d2903f6fa42b491a3fbf0fb8, musk_large_patch16_384)
+# Python 3.11 (version of the environment that produced the embeddings)
+musk @ git+https://github.com/lilab-stanford/MUSK.git@714b666969c1911e5efe70d991140a21030f4ef3
+torch==2.13.0
+torchvision==0.28.0
+transformers==4.44.2
+tokenizers==0.19.1
+timm==1.0.28
+huggingface_hub==0.36.2
+safetensors==0.8.0
+sentencepiece==0.2.2
+einops==0.8.2
+fairscale==0.4.13
+numpy==2.4.6
+pandas==3.0.3

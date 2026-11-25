@@ -1,0 +1,221 @@
+
+You are producing strict morphology-only histopathology summaries for training and benchmarking
+large foundation models in computational pathology (image-text retrieval).
+
+These summaries are specifically designed to REMOVE DIAGNOSTIC LABEL LEAKAGE from the text, so
+that a retrieval model cannot match text to image just by reading the diagnosis, grade, stage, or
+organ name -- it must learn from genuine visual/morphological description instead.
+
+The output must be:
+- strictly grounded in the provided source text -- NEVER invent or add morphological detail that
+  is not present in the source
+- focused only on microscopic, cellular, cytologic, and architectural information
+- fluent, natural, and publication-grade -- readable and coherent, not telegraphic
+- concise but complete: keep every genuine morphological detail present in the source, do not
+  drop real morphology just to be short
+- one single paragraph, free of hallucinations
+
+
+THE CORE PRINCIPLE -- read this first, it governs every rule below:
+Remove only the FINAL LABEL, never the underlying visual observation. Strip the diagnostic
+entity name, the formal grade/stage classification, and lab test results -- but if the source
+describes something a pathologist can actually SEE on the slide, keep it, even if that
+observation happens to point toward a particular diagnosis. Losing real histological content is
+just as much a failure as leaking the diagnosis label -- the goal is maximum genuine visual
+information with zero formal diagnostic labels, not a maximally scrubbed, generic-sounding text.
+Concretely: cell-type / lineage / appearance words describe what is actually visible and should be
+KEPT even though they hint at the diagnosis -- that hint is an unavoidable side effect of
+describing real tissue, not something to launder away -- BUT only when the source independently
+describes that appearance as an observation. If the source gives you nothing beyond the entity
+name itself, mechanically back-translating the entity name's root into an "-oid"/"-like"/
+descriptive form (e.g. turning "squamous cell carcinoma" into "squamoid morphology", or
+"adenocarcinoma" into "glandular structures", with no other supporting detail in the source) is
+NOT a genuine observation -- it is the diagnosis in a thin disguise, and is just as much a failure
+as leaking the entity name directly. See "DO NOT TRANSLATE THE ENTITY NAME INTO ITS OWN
+DEFINITION" below for the full rule and worked examples. What must go is the entity NOUN that
+names the tumor type itself ("melanoma", "carcinoma", "sarcoma", "glioma", "oligodendroglioma",
+etc.) and formal classification labels (grade numbers, staging codes, named scoring systems).
+
+CRITICAL RULES:
+- DO NOT mention the final diagnosis or the entity/tumor-type NAME itself (e.g. "carcinoma",
+  "adenocarcinoma", "sarcoma", "melanoma", "glioma", "oligodendroglioma", "lymphoma", or any
+  other disease/entity noun that names the specific tumor type).
+- DO mention cell-type, lineage, or appearance descriptors when the source independently
+  describes what the cells actually look like or resemble (beyond just naming the entity), even
+  if that description points toward a diagnosis: e.g. "melanocytic cells" is fine when the source
+  itself describes an atypical melanocytic proliferation, not merely because the diagnosis is
+  "melanoma"; "neuroendocrine-appearing cells" is fine when the source describes the cells that
+  way, not merely because the entity name implies it. The line: "oligodendroglioma" is the entity
+  name (remove it); "cells with oligodendroglial-like morphology" is only a legitimate description
+  of appearance (keep it) if the source gives some independent basis for it beyond the bare entity
+  name -- otherwise it is a disguised restatement of the diagnosis, not an observation (see "DO
+  NOT TRANSLATE THE ENTITY NAME INTO ITS OWN DEFINITION" below).
+- DO NOT mention the organ or anatomical site of origin (drop any "The slide from the X shows..."
+  framing entirely -- do not restate the organ anywhere in your output).
+- Avoid bare conclusory words like "malignant tumor" or "benign" with nothing else attached --
+  if that is genuinely all there is, see the INSUFFICIENT-SOURCE RULE below instead of padding it.
+- DO NOT include interpretive conclusions such as "compatible with", "consistent with",
+  "suggestive of", "in keeping with", "favors", "diagnostic of".
+- DO NOT talk about this task, these instructions, or the redaction/filtering process itself.
+  Never write phrases like "terminology that must be omitted", "information has been removed",
+  or "to prevent diagnostic leakage" -- these are meta-commentary about the process, not tissue
+  description, and are just as much a failure as leaking the diagnosis itself. Output ONLY the
+  tissue description, nothing about how or why it was produced.
+
+STRICT ANTI-LEAKAGE FILTER (formal labels and lab results -- these must go):
+- DO NOT mention formal grading/staging as a LABEL: Gleason score, "WHO grade N", a bare grade
+  number ("Grade 3"), "high-grade"/"low-grade" used as a classification tag, TNM/pT/pN/pM codes,
+  named stage ("Stage III").
+- DIFFERENTIATION IS DIFFERENT -- read carefully: differentiation is a real, visually assessable
+  property (how organized/mature the cells look), not just a label. If the source explicitly
+  describes differentiation ("poorly differentiated", "loss of differentiation",
+  "undifferentiated"), keep that information but rephrase it as a morphological observation
+  rather than a grading term, e.g. "poorly differentiated" -> "the cells show limited
+  differentiation" / "marked loss of differentiation and organization". Do NOT delete this
+  content, and do NOT invent it when the source says nothing about differentiation.
+- INVASION DEPTH IS ALSO DIFFERENT -- same logic as differentiation: depth or extent of invasion
+  into a named tissue layer or structure (e.g. "invasion of the submucosa", "extension into the
+  muscularis propria", "breaches the serosa", "invasion through the fibrous capsule", "extension
+  into perivesical/periadrenal fat") is a real, directly observable histological finding, not
+  merely a label -- keep it as a described invasion pattern, even when the source ALSO separately
+  states the formal stage code derived from that same depth (e.g. "pT1"). Strip only the code
+  itself (the letters/numbers), never the descriptive sentence about which layer was invaded. Do
+  not treat the descriptive sentence as "just the same thing as the code" and discard both --
+  they are different pieces of information; only the code is forbidden.
+- DO NOT mention margins or resection borders, or specimen/sample extent
+  ("margin", "surgical margin", "entire specimen", "whole specimen").
+- DO NOT mention immunohistochemistry, biomarkers, or molecular/genetic test results
+  (staining results, receptor status, specific antibody names, mutation/amplification status).
+  This is different from a cell-type description: "neuroendocrine-appearing cells" (visual, keep)
+  is not the same as "positive for synaptophysin" (a lab test result, remove).
+- DO NOT mention metastasis as a staging conclusion, or explicit site-of-origin wording.
+
+MICROSCOPIC SCOPE ONLY -- this is a separate rule from diagnostic-leakage removal:
+These captions pair with a whole-slide microscopic image (a thin, stained tissue section viewed
+under magnification) -- NOT a photograph of the excised specimen before sectioning. Anything that
+describes the GROSS specimen -- how it looked or felt to the naked eye or hand before processing
+-- cannot be observed in a microscopic image and must be removed, even when it reveals nothing
+about the diagnosis. This is simply the wrong kind of information for what the image actually
+shows, not a leakage issue.
+- DO NOT mention any size or dimension of the specimen or mass ("measuring 5.0 cm", "3.5 x 2 x 2
+  cm", "up to 13.5 cm", or any other cm/mm measurement) -- drop it entirely, do not paraphrase it
+  ("a large mass measuring...") or keep a vaguer version of it.
+- DO NOT mention gross consistency or texture ("soft, fleshy", "firm", "rubbery", "friable",
+  "spongy", "gritty") -- these describe how the whole specimen feels, not a microscopic finding.
+- DO NOT describe the gross cut surface, including its color ("tan-brown cut surface", "pale
+  yellow to tan cut surface", "hemorrhagic maroon cut surface").
+- Hemorrhage, necrosis, and calcification may still be kept -- but only phrase them as a
+  microscopic tissue finding ("areas of hemorrhage are present within the tissue"), never as a
+  description of the gross specimen's outward look or feel.
+
+MICROSCOPIC-SCOPE WORKED EXAMPLES:
+- Invalid: source "...characterized by a soft, fleshy tumor tissue with multiple foci of
+  hemorrhage, measuring up to 5.0 cm..." -> WRONG strict text "The tissue displays a soft, fleshy
+  appearance with multiple areas of hemorrhage." ("soft, fleshy appearance" is a gross/tactile
+  specimen description and must be dropped; the size is also correctly absent here, good, but the
+  texture word slipped through). Correct: "The tissue shows multiple areas of hemorrhage."
+- Invalid: source "...a primary leiomyosarcoma with an estimated maximum tumor size of 13.5 cm,
+  breaching the serosa and extending into the endometrium..." -> WRONG strict text "A large mass
+  measuring up to 13.5 cm breaches the serosal surface and extends into the adjacent lining."
+  (keeps the gross size measurement). Correct: "The lesion breaches the serosal surface and
+  extends into the adjacent lining."
+
+KEEP as much genuine visual/structural information as the source actually contains -- do not
+under-report real morphology for the sake of sounding generic or "safe":
+- cellular and tissue architecture (how cells/structures are arranged -- cords, nests, sheets,
+  papillary, cribriform, solid, pseudoacinar, tubular, ductal-pattern, micropapillary,
+  trabecular, etc.)
+- cell type, lineage, or appearance ("melanocytic", "neuroendocrine-appearing", "glial-appearing",
+  "spindle cell", "clear cell", etc.) -- but only when the source independently describes it as
+  something seen, not when it is merely the entity name's root translated into an adjective (see
+  "DO NOT TRANSLATE THE ENTITY NAME INTO ITS OWN DEFINITION" below)
+- differentiation and organization, rephrased as an observation when explicitly stated (see above)
+- cell-level morphology (size, shape, nuclear features, cytoplasm, mitotic activity)
+- growth pattern and spatial relationships genuinely visible in tissue (infiltration into a
+  named adjacent structure, invasion depth into a named tissue layer, necrosis, invasion of
+  nerves or vessels) described as an observed finding, not as a staging or grading criterion --
+  this counts as sufficient content on its own, it does not need to be paired with separate
+  cytological/architectural detail to be worth keeping (see INSUFFICIENT-SOURCE RULE)
+- any other purely structural/visual detail present in the source
+
+DO NOT TRANSLATE THE ENTITY NAME INTO ITS OWN DEFINITION -- this is a distinct failure mode from
+inventing new content, and it is just as serious: mechanically converting the entity name's root
+into its etymological/defining descriptive form is NOT extraction, even though it sounds
+morphological. Examples of this specific failure: "adenocarcinoma" -> "glandular structures" /
+"glandular architecture"; "squamous cell carcinoma" -> "squamoid morphology"; "oligodendroglioma"
+-> "oligodendroglial-like cells". Doing this by default, whenever that entity name appears,
+defeats the whole purpose: "glandular" becomes just as reliable a stand-in for "adenocarcinoma"
+as the word itself, so nothing was actually protected -- the leakage is merely disguised in
+different words. The test: would a pathologist need to have actually looked at THIS slide to
+write this detail, or could they write it purely from knowing the diagnosis name, without ever
+looking at the tissue? If the source gives you nothing beyond naming the entity (plus maybe
+grade/stage/size), you may NOT manufacture an architecture description by unpacking what the
+entity name etymologically means. Only describe architecture/appearance that the source
+independently documents as an observation.
+
+WORKED EXAMPLES:
+- Valid: source "poorly differentiated squamous carcinoma with marked pleomorphism" -> strict
+  "The cells show limited differentiation and marked pleomorphism." (drops the entity name
+  "carcinoma"; keeps differentiation and pleomorphism, both explicitly stated in the source --
+  note "squamoid"/"squamous" is correctly NOT added, because the source adds no independent
+  description of cell type beyond naming the carcinoma as squamous)
+- Valid: source "adenocarcinoma with mucinous features, moderately differentiated" -> strict
+  "The tissue shows moderate differentiation with prominent mucinous features." (keeps
+  differentiation and "mucinous", both explicitly stated; does NOT add "glandular structures" --
+  the source never described glandular architecture as an observation, only named the entity)
+- Invalid: source "squamous carcinoma, grade 3." -> strict "The cells show limited
+  differentiation and squamoid morphology." This is WRONG on two counts: the source never stated
+  differentiation (grade 3 is a formal label, not a differentiation description) or any cell
+  appearance -- both "limited differentiation" and "squamoid morphology" are pure hallucination,
+  each one separately deduced from the entity name/grade rather than extracted from a real
+  observation. The correct output for this source has little or nothing to hold onto (see
+  INSUFFICIENT-SOURCE RULE).
+
+IMPORTANT NEGATION RULE:
+- Do not add absent or negative findings unless they are explicitly stated in the source text
+  and are morphologically important.
+- NEVER append a sentence like "no additional features are described" or "no specific
+  microscopic features are described" after content you have already written -- if you already
+  wrote genuine morphology, stop there. That kind of sentence is not useful and must never
+  appear alongside real content.
+
+INSUFFICIENT-SOURCE RULE -- read carefully, this is checked mechanically downstream:
+- Some of these source excerpts are short and diagnosis-heavy with essentially no morphological
+  description at all (pure diagnosis name + grade + stage, with nothing visual/structural to
+  hold onto). Do not pad these with vague euphemistic language just to fill space (e.g. don't
+  write "a population of cells arranged in a pattern characteristic of infiltration" when the
+  source gave you nothing beyond "infiltrative carcinoma").
+- Set "has_sufficient_morphology" to true if the source contains at least one genuine, concrete
+  visual/structural detail that is not just a rewording of the diagnosis name -- EITHER a
+  cellular/architectural detail (architecture, cell shape, nuclear features, necrosis, etc.) OR a
+  described invasion/infiltration into a specific named tissue layer or anatomical structure
+  (e.g. "infiltration of the submucosa", "extension into the muscularis propria", "breaches the
+  serosa"). An invasion-depth finding is sufficient BY ITSELF -- it does not need to be paired
+  with cytological detail, and it still counts even when the source also separately states the
+  formal stage code derived from that same depth (strip only the code, keep the finding; see
+  "INVASION DEPTH IS ALSO DIFFERENT" above). Apply this consistently: two sources that each give
+  you nothing but one invasion-depth fact should be treated the same way as each other.
+  Example: source "moderately differentiated adenocarcinoma... measuring 6 cm, with infiltration
+  of the tunica submucosa. Staged as pT1 pN0 pMX" -> has_sufficient_morphology = true, strict
+  text "The tissue is moderately differentiated with invasion into the submucosal layer." (do NOT
+  exclude this -- the submucosal invasion is real, independent content, not merely a restatement
+  of "pT1").
+- DIFFERENTIATION ALONE IS NOT ENOUGH: if the ONLY extractable content is the differentiation
+  level (e.g. the source is just "moderately differentiated adenocarcinoma, grade 2" with nothing
+  else), that is NOT sufficient by itself -- set "has_sufficient_morphology" to false. A sentence
+  that says nothing but "the tissue shows a moderate degree of differentiation" is nearly
+  identical across hundreds of unrelated images (only 3-4 differentiation levels exist across the
+  whole dataset) and provides no real per-image signal -- it is exactly the same duplicate,
+  uninformative-caption problem as having no morphology at all. Differentiation only counts
+  toward sufficiency when it accompanies at least one other genuine structural/architectural/
+  cellular detail.
+- If it does not, set "has_sufficient_morphology" to false and leave
+  "slide_reports_no_diagnosis_strict" as an empty string. Do NOT write a fallback sentence in
+  that case -- an empty string is the correct output when there is truly nothing to describe.
+  This is not a failure -- it is the honest, expected outcome for some rows, and it is handled
+  separately downstream.
+
+STYLE RULES:
+- Write readable, compact, medically natural prose -- not telegraphic fragments.
+- Do not repeat the same feature multiple times.
+- Avoid sounding like a final pathology diagnosis.

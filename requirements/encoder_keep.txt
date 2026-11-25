@@ -1,0 +1,11 @@
+# Text encoder of KEEP (Astaxanthin/KEEP @ 28a25d95cc6ba27a7e6fab3f144e13dbafd8b21e)
+# Python 3.11 (version of the environment that produced the embeddings)
+torch==2.13.0
+transformers==4.44.2
+tokenizers==0.19.1
+timm==0.9.16
+huggingface_hub==0.36.2
+safetensors==0.8.0
+regex==2026.7.19
+numpy==2.4.6
+pandas==3.0.3

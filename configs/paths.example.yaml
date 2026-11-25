@@ -1,0 +1,75 @@
+# Data layout for the RPGR experiments. Copy to configs/paths.yaml and edit every path.
+# No data is distributed with the repository; see the README ("Data") for where to obtain it.
+
+output_dir: ./outputs                      # every script writes under <output_dir>/<experiment>/
+
+tcga:
+  reports_csv: /data/tcga/TCGA-Slide-Reports_with_morphology_only.csv   # TITAN slide reports + Morphology-only column (';')
+  labels_csv: ./outputs/cohort/labels.csv                 # written by data/tcga_cohort.py
+  complete_cohort_csv: ./outputs/cohort/complete_cohort.csv
+  split_csv: ./outputs/cohort/split.csv
+  thumbnail_dir: ./outputs/thumbnails                     # filled by figures/fetch_thumbnails.py (Fig. 4)
+  backbones:
+    KEEP:
+      patch_dir: /data/tcga/patches/KEEP                  # <slide_id>.npy, (N_i, 768)
+      pool_cache: /data/tcga/cache/KEEP_pool.npz          # data/build_pool_cache.py
+      prototype_dir: /data/tcga/prototypes/KEEP           # data/build_prototype_banks.py
+      text_dirs:
+        original: /data/tcga/text/KEEP/original           # <slide_id>.npy, (1, 768)
+        morphology_only: /data/tcga/text/KEEP/morphology_only
+        diagnosis_only: /data/tcga/text/KEEP/diagnosis_only
+    CONCH:
+      patch_dir: /data/tcga/patches/CONCH
+      pool_cache: /data/tcga/cache/CONCH_pool.npz
+      prototype_dir: /data/tcga/prototypes/CONCH
+      text_dirs: {original: /data/tcga/text/CONCH/original, morphology_only: /data/tcga/text/CONCH/morphology_only, diagnosis_only: /data/tcga/text/CONCH/diagnosis_only}
+    MUSK:
+      patch_dir: /data/tcga/patches/MUSK
+      pool_cache: /data/tcga/cache/MUSK_pool.npz
+      prototype_dir: /data/tcga/prototypes/MUSK
+      text_dirs: {original: /data/tcga/text/MUSK/original, morphology_only: /data/tcga/text/MUSK/morphology_only, diagnosis_only: /data/tcga/text/MUSK/diagnosis_only}
+    PATHO_CLIP:
+      patch_dir: /data/tcga/patches/PATHO_CLIP
+      pool_cache: /data/tcga/cache/PATHO_CLIP_pool.npz
+      prototype_dir: /data/tcga/prototypes/PATHO_CLIP
+      text_dirs: {original: /data/tcga/text/PATHO_CLIP/original, morphology_only: /data/tcga/text/PATHO_CLIP/morphology_only, diagnosis_only: /data/tcga/text/PATHO_CLIP/diagnosis_only}
+  trained_outputs:                                        # exported test-set outputs of the comparators (Fig. 3)
+    mil_embeddings: /data/tcga/comparators/mil_embeddings.npz      # TransMIL_/SETMIL_ img, txt, ids
+    fgcr_dir: /data/tcga/comparators/fgcr                          # img_cls/<id>.npy, text_cls/<id>.npy
+    dtn_similarity: /data/tcga/comparators/dtn_similarity.npz      # sim (n, n) of the binary codes, ids
+    titan_embeddings: /data/tcga/comparators/titan_test.npz        # z_img, z_txt, ids
+    prism_embeddings: /data/tcga/comparators/prism_test.npz
+
+ai4skin:
+  cohort_csv: /data/ai4skin/cohort_276.csv               # case_id, class_name_corregida (276 cases)
+  class_mapping_csv: /data/ai4skin/class_mapping.csv     # class_name_corregida -> class_name_en
+  folds_csv: /data/ai4skin/folds_seed42.csv              # case_id, class_name_en, outer_fold, role
+  figure_d1:                                             # only for Fig. D.1
+    case_id: HCUV_6008
+    wsi: /data/ai4skin/WSI/6_scc/AI4SKIN_HCUV_278_A.tif  # path inside the figshare archive WSI.7z
+    coords_level: 2                                      # TIFF level of the coordinates (10x)
+    patch_coords_dir: /data/ai4skin/patch_coords         # <case_id>.npy, (N_i, 2) pixels of that level
+  backbones:
+    KEEP:
+      patch_dir: /data/ai4skin/patches/KEEP              # or zip:/data/ai4skin/export.zip!inner/dir
+      prototype_dir: /data/ai4skin/prototypes/KEEP       # <case_id>.npz
+      text_dirs: {original: /data/ai4skin/text/KEEP/original, morphology_only: /data/ai4skin/text/KEEP/morphology_only, diagnosis_only: /data/ai4skin/text/KEEP/diagnosis_only}
+    CONCH:
+      patch_dir: /data/ai4skin/patches/CONCH
+      prototype_dir: /data/ai4skin/prototypes/CONCH
+      text_dirs: {original: /data/ai4skin/text/CONCH/original, morphology_only: /data/ai4skin/text/CONCH/morphology_only, diagnosis_only: /data/ai4skin/text/CONCH/diagnosis_only}
+    MUSK:
+      patch_dir: /data/ai4skin/patches/MUSK
+      prototype_dir: /data/ai4skin/prototypes/MUSK
+      text_dirs: {original: /data/ai4skin/text/MUSK/original, morphology_only: /data/ai4skin/text/MUSK/morphology_only, diagnosis_only: /data/ai4skin/text/MUSK/diagnosis_only}
+    PATHO_CLIP:
+      patch_dir: /data/ai4skin/patches/PATHO_CLIP
+      prototype_dir: /data/ai4skin/prototypes/PATHO_CLIP
+      text_dirs: {original: /data/ai4skin/text/PATHO_CLIP/original, morphology_only: /data/ai4skin/text/PATHO_CLIP/morphology_only, diagnosis_only: /data/ai4skin/text/PATHO_CLIP/diagnosis_only}
+  trained_outputs:                                       # per-fold exported test embeddings (z_img, z_txt, ids)
+    DTN: /data/ai4skin/comparators/dtn_fold{fold}.npz
+    FGCR: /data/ai4skin/comparators/fgcr_fold{fold}.npz
+    SETMIL: /data/ai4skin/comparators/setmil_fold{fold}.npz
+    TransMIL: /data/ai4skin/comparators/transmil_fold{fold}.npz
+    TITAN: /data/ai4skin/comparators/titan_fold{fold}.npz
+    PRISM: /data/ai4skin/comparators/prism_fold{fold}.npz

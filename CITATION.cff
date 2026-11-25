@@ -1,0 +1,38 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the paper below."
+title: "Stress-Testing Vision-Language Pathology Foundation Models for WSI-Report Cross-Modal Retrieval with Reciprocal Prototype-Guided Re-ranking"
+type: software
+authors:
+  - family-names: "Rodríguez-Albendea"
+    given-names: "Víctor"
+    affiliation: "CVBLab, HumanTech, Universitat Politècnica de València (UPV), Valencia, Spain"
+  - family-names: "Giménez-Devís"
+    given-names: "Cristóbal"
+    affiliation: "CVBLab, HumanTech, Universitat Politècnica de València (UPV), Valencia, Spain"
+  - family-names: "Meseguer"
+    given-names: "Pablo"
+    affiliation: "CVBLab, HumanTech, Universitat Politècnica de València (UPV), Valencia, Spain"
+  - family-names: "Terradez"
+    given-names: "Liria"
+    affiliation: "Department of Pathology, Hospital Clínico Universitario de Valencia, Universitat de València (UV), Valencia, Spain"
+  - family-names: "Colomer"
+    given-names: "Adrián"
+    affiliation: "CVBLab, HumanTech, Universitat Politècnica de València (UPV), Valencia, Spain; Artikode Intelligence S.L., Valencia, Spain"
+license: MIT
+repository-code: "https://github.com/VictorRoAlb/RPGR-cross-modal-retrieval"
+preferred-citation:
+  type: unpublished
+  title: "Stress-Testing Vision-Language Pathology Foundation Models for WSI-Report Cross-Modal Retrieval with Reciprocal Prototype-Guided Re-ranking"
+  authors:
+    - family-names: "Rodríguez-Albendea"
+      given-names: "Víctor"
+    - family-names: "Giménez-Devís"
+      given-names: "Cristóbal"
+    - family-names: "Meseguer"
+      given-names: "Pablo"
+    - family-names: "Terradez"
+      given-names: "Liria"
+    - family-names: "Colomer"
+      given-names: "Adrián"
+  year: 2026
+  notes: "Submitted to Medical Image Analysis"

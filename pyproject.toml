@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rpgr"
+version = "1.0.0"
+description = "Reciprocal Prototype-Guided Re-ranking: training-free, label-free post-hoc re-ranking for WSI-report cross-modal retrieval."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+authors = [
+    { name = "Víctor Rodríguez-Albendea" },
+    { name = "Cristóbal Giménez-Devís" },
+    { name = "Pablo Meseguer" },
+    { name = "Liria Terradez" },
+    { name = "Adrián Colomer" },
+]
+dependencies = [
+    "numpy>=2.0",
+    "pandas>=2.0",
+    "scipy>=1.10",
+    "scikit-learn>=1.3",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+experiments = ["joblib", "matplotlib", "tifffile", "imagecodecs", "pillow"]
+test = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+include = ["rpgr*", "baselines*", "data*", "experiments*", "figures*", "text_conditions*"]
+
+[tool.setuptools.package-data]
+text_conditions = ["prompts/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

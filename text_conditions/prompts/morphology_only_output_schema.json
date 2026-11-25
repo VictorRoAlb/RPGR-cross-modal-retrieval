@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "properties": {
+    "has_sufficient_morphology": {
+      "type": "boolean"
+    },
+    "slide_reports_no_diagnosis_strict": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "has_sufficient_morphology",
+    "slide_reports_no_diagnosis_strict"
+  ],
+  "additionalProperties": false
+}

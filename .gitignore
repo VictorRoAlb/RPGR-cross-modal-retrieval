@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+
+# Environments
+.venv/
+venv/
+.env
+
+# Data and outputs: never commit embeddings, caches, reports or results
+outputs/
+*.npz
+*.npy
+*.svs
+configs/paths.yaml
+configs/*.local.yaml
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store

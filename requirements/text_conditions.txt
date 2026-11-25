@@ -1,0 +1,7 @@
+# Morphology-only generation with GPT-4.1 (OpenAI API; needs OPENAI_API_KEY)
+# The exact openai version used to generate the TCGA texts was not recorded. The script calls
+# the Responses API (client.responses.create with a JSON-schema text format), available from
+# openai 1.66.0 on.
+openai>=1.66
+tqdm
+pandas==2.3.3
